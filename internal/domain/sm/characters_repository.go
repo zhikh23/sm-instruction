@@ -16,6 +16,6 @@ type CharactersRepository interface {
 	Update(
 		ctx context.Context,
 		chatID int64,
-		updateFn func(context.Context, *Character) error,
+		updateFn func(innerCtx context.Context, char *Character) error,
 	) error
 }

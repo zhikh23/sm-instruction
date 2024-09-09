@@ -21,16 +21,31 @@ type startInstructionHandler struct {
 }
 
 func NewStartInstructionHandler(
+	chars sm.CharactersRepository,
 	logs *slog.Logger,
 	metricsClient decorator.MetricsClient,
 ) StartInstructionHandler {
 	return decorator.ApplyCommandDecorators[StartInstruction](
-		&startInstructionHandler{},
+		&startInstructionHandler{chars: chars},
 		logs,
 		metricsClient,
 	)
 }
 
 func (h *startInstructionHandler) Handle(ctx context.Context, cmd StartInstruction) error {
-	return nil
+	user, err := sm.NewUser(cmd.ChatID, cmd.Username)
+	if err != nil {
+		return err
+	}
+
+	char, err := sm.NewCharacter(user, cmd.GroupName)
+	if err != nil {
+		return err
+	}
+
+	if err = char.Start(); err != nil {
+		return err
+	}
+
+	return h.chars.Save(ctx, char)
 }

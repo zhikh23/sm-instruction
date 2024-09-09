@@ -11,7 +11,9 @@ import (
 	"sm-instruction/internal/domain/sm"
 )
 
+const randomChatID = 42
 const randomGroupName = "СМ1-11Б"
+const randomUsername = "username"
 
 func TestValidateGroupName(t *testing.T) {
 	type testCase struct {
@@ -100,11 +102,6 @@ func TestCharacter_IncSkill(t *testing.T) {
 }
 
 func TestCharacter_Booking(t *testing.T) {
-	intervalFactory := sm.MustNewBookingIntervalFactory(sm.BookingIntervalFactoryConfig{
-		IntervalDuration:             20 * time.Minute,
-		MinimalDurationBeforeBooking: 20 * time.Minute,
-	})
-
 	t.Run("should book location", func(t *testing.T) {
 		user := sm.MustNewUser(42, "test")
 		char := sm.MustNewCharacter(user, randomGroupName)
@@ -113,7 +110,7 @@ func TestCharacter_Booking(t *testing.T) {
 		loc := sm.MustNewLocation("1234", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
 
 		from := timeWithMinutes(20)
-		err := char.Book(loc, from, intervalFactory)
+		err := char.Book(loc, from)
 		require.NoError(t, err)
 		require.True(t, char.HasBooking())
 	})
@@ -126,11 +123,11 @@ func TestCharacter_Booking(t *testing.T) {
 		loc := sm.MustNewLocation("1234", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
 
 		from := timeWithMinutes(20)
-		err := char.Book(loc, from, intervalFactory)
+		err := char.Book(loc, from)
 		require.NoError(t, err)
 
 		from = timeWithMinutes(40)
-		err = char.Book(loc, from, intervalFactory)
+		err = char.Book(loc, from)
 		require.ErrorIs(t, err, sm.ErrCharacterAlreadyHasBooking)
 	})
 
@@ -146,23 +143,23 @@ func TestCharacter_Booking(t *testing.T) {
 		require.NoError(t, char2.Start())
 
 		from := timeWithMinutes(20)
-		err := char1.Book(loc, from, intervalFactory)
+		err := char1.Book(loc, from)
 		require.NoError(t, err)
 
 		from = timeWithMinutes(20)
-		err = char2.Book(loc, from, intervalFactory)
-		require.ErrorIs(t, err, sm.ErrLocationIntervalHasAlreadyBooked)
+		err = char2.Book(loc, from)
+		require.ErrorIs(t, err, sm.ErrLocationAlreadyBooked)
 	})
 
 	t.Run("should return error if book interval is invalid", func(t *testing.T) {
 		user := sm.MustNewUser(42, "test")
 		char := sm.MustNewCharacter(user, randomGroupName)
-		char.Start()
+		require.NoError(t, char.Start())
 
 		loc := sm.MustNewLocation("1234", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
 
 		from := timeWithMinutes(30)
-		err := char.Book(loc, from, intervalFactory)
+		err := char.Book(loc, from)
 		require.ErrorAs(t, err, &commonerrs.InvalidInputError{})
 	})
 
@@ -174,8 +171,8 @@ func TestCharacter_Booking(t *testing.T) {
 		loc := sm.MustNewLocation("1234", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
 
 		from := time.Now().Add(-11 * time.Minute).Round(20 * time.Minute)
-		err := char.Book(loc, from, intervalFactory)
-		require.ErrorIs(t, err, sm.ErrNowBookingIsTooLate)
+		err := char.Book(loc, from)
+		require.ErrorIs(t, err, sm.ErrCharacterBookingIsTooClose)
 	})
 
 	t.Run("should return error if character has ended Instruction", func(t *testing.T) {
@@ -186,7 +183,7 @@ func TestCharacter_Booking(t *testing.T) {
 		loc := sm.MustNewLocation("1234", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
 
 		from := time.Now().Add(sm.MaxDurationInstruction).Round(20 * time.Minute).Add(20 * time.Minute)
-		err := char.Book(loc, from, intervalFactory)
+		err := char.Book(loc, from)
 		require.ErrorIs(t, err, sm.ErrCharacterBookingIsTooLate)
 	})
 }

@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/bmstu-itstech/itsreg-bots/internal/common/logs/handlers/slogpretty"
+	"sm-instruction/internal/common/logs/handlers/slogpretty"
 )
 
 const (

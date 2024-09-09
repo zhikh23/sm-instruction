@@ -3,6 +3,7 @@ package sm
 import (
 	"errors"
 	"slices"
+	"time"
 
 	"sm-instruction/internal/common/commonerrs"
 )
@@ -12,16 +13,57 @@ const AvailableSkillsNumber = 2
 type Location struct {
 	UUID            string
 	Name            string
-	Booked          []BookingInterval
+	Booked          []BookedTime
 	Administrators  []User
 	AvailableSkills []SkillType
+}
+
+func NewLocation(
+	uuid string,
+	name string,
+	availableSkills []SkillType,
+) (*Location, error) {
+	if uuid == "" {
+		return nil, commonerrs.NewInvalidInputError("expected not empty location uuid")
+	}
+
+	if name == "" {
+		return nil, commonerrs.NewInvalidInputError("expected not empty location name")
+	}
+
+	if len(availableSkills) != AvailableSkillsNumber {
+		return nil, commonerrs.NewInvalidInputErrorf(
+			"invalid number of available skills: %d; expected %d",
+			len(availableSkills), AvailableSkillsNumber,
+		)
+	}
+
+	return &Location{
+		UUID:            uuid,
+		Name:            name,
+		Booked:          make([]BookedTime, 0),
+		Administrators:  make([]User, 0),
+		AvailableSkills: availableSkills,
+	}, nil
+}
+
+func MustNewLocation(
+	uuid string,
+	name string,
+	availableSkills []SkillType,
+) *Location {
+	l, err := NewLocation(uuid, name, availableSkills)
+	if err != nil {
+		panic(err)
+	}
+	return l
 }
 
 func UnmarshallLocationFromDB(
 	uuid string,
 	name string,
 	availableSkills []string,
-	booked []BookingInterval,
+	booked []BookedTime,
 	administrators []User,
 ) (*Location, error) {
 	if uuid == "" {
@@ -46,7 +88,7 @@ func UnmarshallLocationFromDB(
 	}
 
 	if booked == nil {
-		booked = make([]BookingInterval, 0)
+		booked = make([]BookedTime, 0)
 	}
 
 	for _, interval := range booked {
@@ -74,34 +116,39 @@ func UnmarshallLocationFromDB(
 	}, nil
 }
 
-func (l *Location) IsBooked(i BookingInterval) bool {
-	for _, b := range l.Booked {
-		if b.IsIntersects(i) {
+func (l *Location) IsBooked(t time.Time) bool {
+	for _, bt := range l.Booked {
+		if bt.Time.Equal(t) {
 			return true
 		}
 	}
 	return false
 }
 
-var ErrLocationIntervalHasAlreadyBooked = errors.New("interval already booked")
+var ErrLocationAlreadyBooked = errors.New("interval already booked")
 
-func (l *Location) CheckBooked(i BookingInterval) error {
-	if l.IsBooked(i) {
-		return ErrLocationIntervalHasAlreadyBooked
+func (l *Location) CanBook(t time.Time) error {
+	if l.IsBooked(t) {
+		return ErrLocationAlreadyBooked
 	}
 	return nil
 }
 
-func (l *Location) AddBooking(i BookingInterval) error {
-	if i.IsZero() {
+func (l *Location) AddBooking(t time.Time, username string) error {
+	if t.IsZero() {
 		return commonerrs.NewInvalidInputError("expected not empty booking interval")
 	}
 
-	if err := l.CheckBooked(i); err != nil {
+	if err := l.CanBook(t); err != nil {
 		return err
 	}
 
-	l.Booked = append(l.Booked, i)
+	bookTime, err := NewBookedTime(t, username)
+	if err != nil {
+		return err
+	}
+
+	l.Booked = append(l.Booked, bookTime)
 
 	return nil
 }
@@ -124,42 +171,20 @@ func (l *Location) Complete(char *Character, incSkill SkillType, score int) erro
 	return nil
 }
 
-func NewLocation(
-	uuid string,
-	name string,
-	availableSkills []SkillType,
-) (*Location, error) {
-	if uuid == "" {
-		return nil, commonerrs.NewInvalidInputError("expected not empty location uuid")
+func (l *Location) AvailableTimes(to time.Time) []time.Time {
+	times := make([]time.Time, 0)
+
+	it := time.Now().Round(BookInterval)
+	if it.Before(time.Now()) {
+		it = it.Add(BookInterval)
+	}
+	times = append(times, it)
+
+	for ; it.Before(to); it = it.Add(BookInterval) {
+		if !l.IsBooked(it) {
+			times = append(times, it)
+		}
 	}
 
-	if name == "" {
-		return nil, commonerrs.NewInvalidInputError("expected not empty location name")
-	}
-
-	if len(availableSkills) != AvailableSkillsNumber {
-		return nil, commonerrs.NewInvalidInputErrorf(
-			"invalid number of available skills: %d; expected %d",
-			len(availableSkills), AvailableSkillsNumber,
-		)
-	}
-
-	return &Location{
-		Name:            name,
-		Booked:          make([]BookingInterval, 0),
-		Administrators:  make([]User, 0),
-		AvailableSkills: availableSkills,
-	}, nil
-}
-
-func MustNewLocation(
-	uuid string,
-	name string,
-	availableSkills []SkillType,
-) *Location {
-	l, err := NewLocation(uuid, name, availableSkills)
-	if err != nil {
-		panic(err)
-	}
-	return l
+	return times
 }

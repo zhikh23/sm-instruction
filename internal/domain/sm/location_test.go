@@ -2,7 +2,6 @@ package sm_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -24,52 +23,36 @@ func TestLocationFactory_NewLocation(t *testing.T) {
 }
 
 func TestLocation_AddBooking(t *testing.T) {
-	cfg := sm.BookingIntervalFactoryConfig{
-		IntervalDuration:             20 * time.Minute,
-		MinimalDurationBeforeBooking: 5 * time.Minute,
-	}
-	factory := sm.MustNewBookingIntervalFactory(cfg)
-
 	t.Run("should add booking", func(t *testing.T) {
 		loc := sm.MustNewLocation("1234", "Test", []sm.SkillType{sm.Researching, sm.Social})
 
-		from := timeWithMinutes(20)
-		i := factory.MustNewBookingInterval(from, randomUsername)
-
-		err := loc.AddBooking(i)
+		bt := timeWithMinutes(20)
+		err := loc.AddBooking(bt, randomUsername)
 		require.NoError(t, err)
-		require.True(t, loc.IsBooked(i))
-		require.ErrorIs(t, loc.CheckBooked(i), sm.ErrLocationIntervalHasAlreadyBooked)
+		require.True(t, loc.IsBooked(bt))
+		require.ErrorIs(t, loc.CanBook(bt), sm.ErrLocationAlreadyBooked)
 	})
 
 	t.Run("should return error if already booked", func(t *testing.T) {
 		loc := sm.MustNewLocation("1234", "Test", []sm.SkillType{sm.Researching, sm.Social})
 
-		from := timeWithMinutes(20)
-		i := factory.MustNewBookingInterval(from, randomUsername)
-
-		require.NoError(t, loc.AddBooking(i))
-		err := loc.AddBooking(i)
-		require.ErrorIs(t, err, sm.ErrLocationIntervalHasAlreadyBooked)
+		bt := timeWithMinutes(20)
+		require.NoError(t, loc.AddBooking(bt, randomUsername))
+		err := loc.AddBooking(bt, randomUsername)
+		require.ErrorIs(t, err, sm.ErrLocationAlreadyBooked)
 	})
 }
 
 func TestLocation_Complete(t *testing.T) {
-	cfg := sm.BookingIntervalFactoryConfig{
-		IntervalDuration:             20 * time.Minute,
-		MinimalDurationBeforeBooking: 5 * time.Minute,
-	}
-	factory := sm.MustNewBookingIntervalFactory(cfg)
-
 	t.Run("should complete character task", func(t *testing.T) {
 		loc := sm.MustNewLocation("1234", "Test", []sm.SkillType{sm.Engineering, sm.Social})
 
-		user := sm.MustNewUser(randomUserID, randomUsername)
+		user := sm.MustNewUser(randomChatID, randomUsername)
 		char := sm.MustNewCharacter(user, randomGroupName)
 		require.NoError(t, char.Start())
 
-		from := timeWithMinutes(20)
-		err := char.Book(loc, from, factory)
+		bt := timeWithMinutes(20)
+		err := char.Book(loc, bt)
 		require.NoError(t, err)
 
 		score := 4
@@ -82,12 +65,12 @@ func TestLocation_Complete(t *testing.T) {
 	t.Run("should return error if location cannot inc skill", func(t *testing.T) {
 		loc := sm.MustNewLocation("1234", "Test", []sm.SkillType{sm.Researching, sm.Social})
 
-		user := sm.MustNewUser(randomUserID, randomUsername)
+		user := sm.MustNewUser(randomChatID, randomUsername)
 		char := sm.MustNewCharacter(user, randomGroupName)
 		require.NoError(t, char.Start())
 
-		from := timeWithMinutes(20)
-		err := char.Book(loc, from, factory)
+		bt := timeWithMinutes(20)
+		err := char.Book(loc, bt)
 		require.NoError(t, err)
 
 		score := 4
