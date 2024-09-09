@@ -192,8 +192,8 @@ func (c *Character) IsProcessing() bool {
 	return c.IsStarted() && !c.IsFinished()
 }
 
-func (c *Character) ID() int64 {
-	return c.Head.ChatID
+func (c *Character) Username() string {
+	return c.Head.Username
 }
 
 func (c *Character) Skill(t SkillType) int {
@@ -251,7 +251,7 @@ func (c *Character) CanBook(loc *Location, interval BookingInterval) error {
 }
 
 func (c *Character) Book(loc *Location, from time.Time, f BookingIntervalFactory) error {
-	interval, err := f.NewBookingInterval(from, c.ID())
+	interval, err := f.NewBookingInterval(from, c.Head.Username)
 	if err != nil {
 		return err
 	}

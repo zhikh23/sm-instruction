@@ -11,6 +11,7 @@ import (
 )
 
 const randomUserID = 42
+const randomUsername = "test"
 
 func TestBookingIntervalFactory_NewBookingInterval(t *testing.T) {
 	duration := 10 * time.Minute
@@ -22,7 +23,7 @@ func TestBookingIntervalFactory_NewBookingInterval(t *testing.T) {
 
 	t.Run("should return a booking interval", func(t *testing.T) {
 		start := timeWithMinutes(20)
-		i, err := factory.NewBookingInterval(start, randomUserID)
+		i, err := factory.NewBookingInterval(start, randomUsername)
 		require.NoError(t, err)
 		require.Equal(t, i.From.Hour(), start.Local().Hour())
 		require.Equal(t, i.To.Sub(i.From), duration)
@@ -30,7 +31,7 @@ func TestBookingIntervalFactory_NewBookingInterval(t *testing.T) {
 
 	t.Run("should return error if booking interval is invalid", func(t *testing.T) {
 		start := timeWithMinutes(15)
-		_, err := factory.NewBookingInterval(start, randomUserID)
+		_, err := factory.NewBookingInterval(start, randomUsername)
 		require.ErrorAs(t, err, &commonerrs.InvalidInputError{})
 	})
 }
@@ -58,8 +59,8 @@ func TestBookingInterval_IsIntersects(t *testing.T) {
 		*/
 		a := timeWithMinutes(10)
 		c := timeWithMinutes(0)
-		ab := factory1.MustNewBookingInterval(a, randomUserID)
-		cd := factory2.MustNewBookingInterval(c, randomUserID)
+		ab := factory1.MustNewBookingInterval(a, randomUsername)
+		cd := factory2.MustNewBookingInterval(c, randomUsername)
 		require.True(t, ab.IsIntersects(cd))
 	})
 
@@ -73,8 +74,8 @@ func TestBookingInterval_IsIntersects(t *testing.T) {
 		*/
 		a := timeWithMinutes(10)
 		c := timeWithMinutes(10)
-		ab := factory1.MustNewBookingInterval(a, randomUserID)
-		cd := factory1.MustNewBookingInterval(c, randomUserID)
+		ab := factory1.MustNewBookingInterval(a, randomUsername)
+		cd := factory1.MustNewBookingInterval(c, randomUsername)
 		require.True(t, ab.IsIntersects(cd))
 	})
 
@@ -88,8 +89,8 @@ func TestBookingInterval_IsIntersects(t *testing.T) {
 		*/
 		a := timeWithMinutes(10)
 		c := timeWithMinutes(20)
-		ab := factory1.MustNewBookingInterval(a, randomUserID)
-		cd := factory1.MustNewBookingInterval(c, randomUserID)
+		ab := factory1.MustNewBookingInterval(a, randomUsername)
+		cd := factory1.MustNewBookingInterval(c, randomUsername)
 		require.False(t, ab.IsIntersects(cd))
 	})
 
@@ -104,8 +105,8 @@ func TestBookingInterval_IsIntersects(t *testing.T) {
 		a := timeWithMinutes(10)
 		c := timeWithMinutes(20).Add(time.Hour)
 		require.Equal(t, time.Hour+10*time.Minute, c.Sub(a))
-		ab := factory1.MustNewBookingInterval(a, randomUserID)
-		cd := factory1.MustNewBookingInterval(c, randomUserID)
+		ab := factory1.MustNewBookingInterval(a, randomUsername)
+		cd := factory1.MustNewBookingInterval(c, randomUsername)
 		require.False(t, ab.IsIntersects(cd))
 		require.False(t, cd.IsIntersects(ab))
 	})
@@ -122,10 +123,10 @@ func TestBookingIntervalFactory_AvailableIntervals(t *testing.T) {
 		loc := sm.MustNewLocation("1234", "Test", []sm.SkillType{sm.Researching, sm.Creative})
 
 		bookedTime := timeWithMinutes(20)
-		booked := factory.MustNewBookingInterval(bookedTime, randomUserID)
+		booked := factory.MustNewBookingInterval(bookedTime, randomUsername)
 		require.NoError(t, loc.AddBooking(booked))
 
-		user := sm.MustNewUser(randomUserID, "test")
+		user := sm.MustNewUser(randomUserID, randomUsername)
 		char := sm.MustNewCharacter(user, randomGroupName)
 		require.NoError(t, char.Start())
 

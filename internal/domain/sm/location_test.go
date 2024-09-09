@@ -34,7 +34,7 @@ func TestLocation_AddBooking(t *testing.T) {
 		loc := sm.MustNewLocation("1234", "Test", []sm.SkillType{sm.Researching, sm.Social})
 
 		from := timeWithMinutes(20)
-		i := factory.MustNewBookingInterval(from, randomUserID)
+		i := factory.MustNewBookingInterval(from, randomUsername)
 
 		err := loc.AddBooking(i)
 		require.NoError(t, err)
@@ -46,7 +46,7 @@ func TestLocation_AddBooking(t *testing.T) {
 		loc := sm.MustNewLocation("1234", "Test", []sm.SkillType{sm.Researching, sm.Social})
 
 		from := timeWithMinutes(20)
-		i := factory.MustNewBookingInterval(from, randomUserID)
+		i := factory.MustNewBookingInterval(from, randomUsername)
 
 		require.NoError(t, loc.AddBooking(i))
 		err := loc.AddBooking(i)
@@ -64,7 +64,7 @@ func TestLocation_Complete(t *testing.T) {
 	t.Run("should complete character task", func(t *testing.T) {
 		loc := sm.MustNewLocation("1234", "Test", []sm.SkillType{sm.Engineering, sm.Social})
 
-		user := sm.MustNewUser(randomUserID, "test")
+		user := sm.MustNewUser(randomUserID, randomUsername)
 		char := sm.MustNewCharacter(user, randomGroupName)
 		require.NoError(t, char.Start())
 
@@ -82,7 +82,7 @@ func TestLocation_Complete(t *testing.T) {
 	t.Run("should return error if location cannot inc skill", func(t *testing.T) {
 		loc := sm.MustNewLocation("1234", "Test", []sm.SkillType{sm.Researching, sm.Social})
 
-		user := sm.MustNewUser(randomUserID, "test")
+		user := sm.MustNewUser(randomUserID, randomUsername)
 		char := sm.MustNewCharacter(user, randomGroupName)
 		require.NoError(t, char.Start())
 

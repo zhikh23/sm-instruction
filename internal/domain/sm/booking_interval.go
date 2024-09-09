@@ -8,15 +8,15 @@ import (
 )
 
 type BookingInterval struct {
-	From       time.Time
-	To         time.Time
-	BookedByID int64
+	From     time.Time
+	To       time.Time
+	BookedBy string
 }
 
 func UnmarshalBookingIntervalFromDB(
 	from time.Time,
 	to time.Time,
-	bookedByID int64,
+	bookedBy string,
 ) (BookingInterval, error) {
 	if from.IsZero() {
 		return BookingInterval{}, commonerrs.NewInvalidInputError("expected not empty 'from' timestamp")
@@ -26,14 +26,14 @@ func UnmarshalBookingIntervalFromDB(
 		return BookingInterval{}, commonerrs.NewInvalidInputError("expected not empty 'to' timestamp")
 	}
 
-	if bookedByID == 0 {
+	if bookedBy == "" {
 		return BookingInterval{}, commonerrs.NewInvalidInputError("expected not empty booked by ID")
 	}
 
 	return BookingInterval{
-		From:       from.Local(),
-		To:         to.Local(),
-		BookedByID: bookedByID,
+		From:     from.Local(),
+		To:       to.Local(),
+		BookedBy: bookedBy,
 	}, nil
 }
 
@@ -90,7 +90,7 @@ func MustNewBookingIntervalFactory(cfg BookingIntervalFactoryConfig) BookingInte
 
 var ErrNowBookingIsTooLate = errors.New("too late to book")
 
-func (f BookingIntervalFactory) NewBookingInterval(from time.Time, byID int64) (BookingInterval, error) {
+func (f BookingIntervalFactory) NewBookingInterval(from time.Time, username string) (BookingInterval, error) {
 	if !from.Round(f.cfg.IntervalDuration).Equal(from) {
 		return BookingInterval{}, commonerrs.NewInvalidInputErrorf(
 			"invalid booking interval: should be multyply of %s", f.cfg.IntervalDuration.String(),
@@ -102,14 +102,14 @@ func (f BookingIntervalFactory) NewBookingInterval(from time.Time, byID int64) (
 	}
 
 	return BookingInterval{
-		From:       from.Local(),
-		To:         from.Add(f.cfg.IntervalDuration).Local(),
-		BookedByID: byID,
+		From:     from.Local(),
+		To:       from.Add(f.cfg.IntervalDuration).Local(),
+		BookedBy: username,
 	}, nil
 }
 
-func (f BookingIntervalFactory) MustNewBookingInterval(from time.Time, byID int64) BookingInterval {
-	i, err := f.NewBookingInterval(from, byID)
+func (f BookingIntervalFactory) MustNewBookingInterval(from time.Time, username string) BookingInterval {
+	i, err := f.NewBookingInterval(from, username)
 	if err != nil {
 		panic(err)
 	}
@@ -122,7 +122,7 @@ func (f BookingIntervalFactory) AvailableIntervals(char *Character, loc *Locatio
 		return nil, err
 	}
 
-	intervals, err := f.availableIntervals(finish, char.ID())
+	intervals, err := f.availableIntervals(finish, char.Username())
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func (f BookingIntervalFactory) AvailableIntervals(char *Character, loc *Locatio
 	return availableIntervals, nil
 }
 
-func (f BookingIntervalFactory) availableIntervals(finish time.Time, charID int64) ([]BookingInterval, error) {
+func (f BookingIntervalFactory) availableIntervals(finish time.Time, username string) ([]BookingInterval, error) {
 	start := time.Now().Round(f.cfg.IntervalDuration)
 	if start.Before(time.Now()) {
 		start = start.Add(f.cfg.IntervalDuration)
@@ -149,7 +149,7 @@ func (f BookingIntervalFactory) availableIntervals(finish time.Time, charID int6
 
 	availableIntervals := make([]BookingInterval, 0)
 	for current := start; current.Before(finish); current = current.Add(f.cfg.IntervalDuration) {
-		interval, err := f.NewBookingInterval(current, charID)
+		interval, err := f.NewBookingInterval(current, username)
 		if err != nil {
 			return nil, err
 		}
