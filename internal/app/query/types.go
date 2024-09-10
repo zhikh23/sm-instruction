@@ -1,8 +1,9 @@
 package query
 
 import (
-	"sm-instruction/internal/domain/sm"
 	"time"
+
+	"sm-instruction/internal/domain/sm"
 )
 
 type User struct {
@@ -13,6 +14,12 @@ type User struct {
 type Character struct {
 	Head      User
 	GroupName string
+	Skills    map[string]int
+	StartedAt *time.Time
+	FinishAt  *time.Time
+
+	BookedLocationUUID *string
+	BookedLocationTo   *time.Time
 }
 
 type BookedInterval struct {
@@ -23,15 +30,42 @@ type BookedInterval struct {
 type Location struct {
 	UUID            string
 	Name            string
+	Where           string
 	Booked          []BookedInterval
 	Administrators  []User
 	AvailableSkills []string
+}
+
+func convertSkillTypeToApp(s sm.SkillType) string {
+	return s.String()
+}
+
+func convertSkillTypesToApp(ss []sm.SkillType) []string {
+	res := make([]string, len(ss))
+	for i, s := range ss {
+		res[i] = convertSkillTypeToApp(s)
+	}
+	return res
+}
+
+func convertSkillsToApp(m map[sm.SkillType]int) map[string]int {
+	res := make(map[string]int)
+	for k, v := range m {
+		res[convertSkillTypeToApp(k)] = v
+	}
+	return res
 }
 
 func convertCharacterToApp(c *sm.Character) Character {
 	return Character{
 		Head:      convertUserToApp(c.Head),
 		GroupName: c.GroupName,
+		Skills:    convertSkillsToApp(c.Skills),
+		StartedAt: c.StartedAt,
+		FinishAt:  c.FinishAt,
+
+		BookedLocationUUID: c.BookedLocationUUID,
+		BookedLocationTo:   c.BookedLocationTo,
 	}
 }
 
@@ -65,22 +99,11 @@ func convertUsersToApp(us []sm.User) []User {
 	return res
 }
 
-func convertSkillTypeToApp(s sm.SkillType) string {
-	return s.String()
-}
-
-func convertSkillTypesToApp(ss []sm.SkillType) []string {
-	res := make([]string, len(ss))
-	for i, s := range ss {
-		res[i] = convertSkillTypeToApp(s)
-	}
-	return res
-}
-
 func convertLocationToApp(l *sm.Location) Location {
 	return Location{
 		UUID:            l.UUID,
 		Name:            l.Name,
+		Where:           l.Where,
 		Booked:          convertBookedIntervalsToApp(l.Booked),
 		Administrators:  convertUsersToApp(l.Administrators),
 		AvailableSkills: convertSkillTypesToApp(l.AvailableSkills),

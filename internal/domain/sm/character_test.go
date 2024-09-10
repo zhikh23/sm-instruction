@@ -24,8 +24,11 @@ func TestValidateGroupName(t *testing.T) {
 	cases := []testCase{
 		{GroupName: "СМ1-11Б", ExpectErr: false},
 		{GroupName: "СМ13-15Б", ExpectErr: false},
-		{GroupName: "СМ5-15А", ExpectErr: false},
+		{GroupName: "СМ5-15", ExpectErr: false},
 		{GroupName: "СМ6-13", ExpectErr: false},
+		{GroupName: "см1-11", ExpectErr: true},
+		{GroupName: "ИУ7-34Б", ExpectErr: true},
+		{GroupName: "СМ1-1", ExpectErr: true},
 	}
 
 	for _, tc := range cases {
@@ -107,9 +110,9 @@ func TestCharacter_Booking(t *testing.T) {
 		char := sm.MustNewCharacter(user, randomGroupName)
 		require.NoError(t, char.Start())
 
-		loc := sm.MustNewLocation("1234", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
+		loc := sm.MustNewLocation("1234", "345", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
 
-		from := timeWithMinutes(20)
+		from := timeWithMinutes(30)
 		err := char.Book(loc, from)
 		require.NoError(t, err)
 		require.True(t, char.HasBooking())
@@ -120,19 +123,19 @@ func TestCharacter_Booking(t *testing.T) {
 		char := sm.MustNewCharacter(user, randomGroupName)
 		require.NoError(t, char.Start())
 
-		loc := sm.MustNewLocation("1234", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
+		loc := sm.MustNewLocation("1234", "345", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
 
-		from := timeWithMinutes(20)
+		from := timeWithMinutes(30)
 		err := char.Book(loc, from)
 		require.NoError(t, err)
 
-		from = timeWithMinutes(40)
+		from = timeWithMinutes(0)
 		err = char.Book(loc, from)
 		require.ErrorIs(t, err, sm.ErrCharacterAlreadyHasBooking)
 	})
 
 	t.Run("should return error if location is already booked", func(t *testing.T) {
-		loc := sm.MustNewLocation("1234", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
+		loc := sm.MustNewLocation("1234", "345", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
 
 		user1 := sm.MustNewUser(42, "test")
 		char1 := sm.MustNewCharacter(user1, randomGroupName)
@@ -142,11 +145,11 @@ func TestCharacter_Booking(t *testing.T) {
 		char2 := sm.MustNewCharacter(user2, randomGroupName)
 		require.NoError(t, char2.Start())
 
-		from := timeWithMinutes(20)
+		from := timeWithMinutes(30)
 		err := char1.Book(loc, from)
 		require.NoError(t, err)
 
-		from = timeWithMinutes(20)
+		from = timeWithMinutes(30)
 		err = char2.Book(loc, from)
 		require.ErrorIs(t, err, sm.ErrLocationAlreadyBooked)
 	})
@@ -156,9 +159,9 @@ func TestCharacter_Booking(t *testing.T) {
 		char := sm.MustNewCharacter(user, randomGroupName)
 		require.NoError(t, char.Start())
 
-		loc := sm.MustNewLocation("1234", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
+		loc := sm.MustNewLocation("1234", "345", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
 
-		from := timeWithMinutes(30)
+		from := timeWithMinutes(45)
 		err := char.Book(loc, from)
 		require.ErrorAs(t, err, &commonerrs.InvalidInputError{})
 	})
@@ -168,9 +171,9 @@ func TestCharacter_Booking(t *testing.T) {
 		char := sm.MustNewCharacter(user, randomGroupName)
 		require.NoError(t, char.Start())
 
-		loc := sm.MustNewLocation("1234", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
+		loc := sm.MustNewLocation("1234", "345", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
 
-		from := time.Now().Add(-11 * time.Minute).Round(20 * time.Minute)
+		from := time.Now().Add(-16 * time.Minute).Round(30 * time.Minute)
 		err := char.Book(loc, from)
 		require.ErrorIs(t, err, sm.ErrCharacterBookingIsTooClose)
 	})
@@ -180,7 +183,7 @@ func TestCharacter_Booking(t *testing.T) {
 		char := sm.MustNewCharacter(user, randomGroupName)
 		require.NoError(t, char.Start())
 
-		loc := sm.MustNewLocation("1234", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
+		loc := sm.MustNewLocation("1234", "345", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
 
 		from := time.Now().Add(sm.MaxDurationInstruction).Round(20 * time.Minute).Add(20 * time.Minute)
 		err := char.Book(loc, from)
@@ -218,5 +221,5 @@ func timeWithMinutes(minutes int) time.Time {
 		now.Hour(),
 		minutes, 0, 0,
 		time.Local,
-	).Add(time.Hour)
+	).Add(2 * time.Hour)
 }

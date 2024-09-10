@@ -6,7 +6,7 @@ import (
 	"sm-instruction/internal/common/commonerrs"
 )
 
-const BookInterval = 20 * time.Minute
+const BookInterval = 30 * time.Minute
 
 type BookedTime struct {
 	Time       time.Time

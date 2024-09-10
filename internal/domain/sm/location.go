@@ -13,6 +13,7 @@ const AvailableSkillsNumber = 2
 type Location struct {
 	UUID            string
 	Name            string
+	Where           string
 	Booked          []BookedTime
 	Administrators  []User
 	AvailableSkills []SkillType
@@ -21,10 +22,15 @@ type Location struct {
 func NewLocation(
 	uuid string,
 	name string,
+	where string,
 	availableSkills []SkillType,
 ) (*Location, error) {
 	if uuid == "" {
 		return nil, commonerrs.NewInvalidInputError("expected not empty location uuid")
+	}
+
+	if where == "" {
+		return nil, commonerrs.NewInvalidInputError("expected not empty location where")
 	}
 
 	if name == "" {
@@ -41,6 +47,7 @@ func NewLocation(
 	return &Location{
 		UUID:            uuid,
 		Name:            name,
+		Where:           where,
 		Booked:          make([]BookedTime, 0),
 		Administrators:  make([]User, 0),
 		AvailableSkills: availableSkills,
@@ -50,9 +57,10 @@ func NewLocation(
 func MustNewLocation(
 	uuid string,
 	name string,
+	where string,
 	availableSkills []SkillType,
 ) *Location {
-	l, err := NewLocation(uuid, name, availableSkills)
+	l, err := NewLocation(uuid, name, where, availableSkills)
 	if err != nil {
 		panic(err)
 	}
@@ -62,6 +70,7 @@ func MustNewLocation(
 func UnmarshallLocationFromDB(
 	uuid string,
 	name string,
+	where string,
 	availableSkills []string,
 	booked []BookedTime,
 	administrators []User,
@@ -72,6 +81,10 @@ func UnmarshallLocationFromDB(
 
 	if name == "" {
 		return nil, commonerrs.NewInvalidInputError("expected not empty location name")
+	}
+
+	if where == "" {
+		return nil, commonerrs.NewInvalidInputError("expected not empty location where")
 	}
 
 	if len(availableSkills) == 0 {
@@ -110,6 +123,7 @@ func UnmarshallLocationFromDB(
 	return &Location{
 		UUID:            uuid,
 		Name:            name,
+		Where:           where,
 		Booked:          booked,
 		Administrators:  administrators,
 		AvailableSkills: skills,
@@ -178,7 +192,6 @@ func (l *Location) AvailableTimes(to time.Time) []time.Time {
 	if it.Before(time.Now()) {
 		it = it.Add(BookInterval)
 	}
-	times = append(times, it)
 
 	for ; it.Before(to); it = it.Add(BookInterval) {
 		if !l.IsBooked(it) {

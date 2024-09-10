@@ -3,9 +3,10 @@ package query
 import (
 	"context"
 	"log/slog"
+	"time"
+
 	"sm-instruction/internal/common/decorator"
 	"sm-instruction/internal/domain/sm"
-	"time"
 )
 
 type GetAvailableIntervals struct {

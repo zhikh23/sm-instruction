@@ -68,7 +68,7 @@ func MustNewCharacter(
 	return c
 }
 
-func NewCharacterFromDB(
+func UnmarshallCharacterFromDB(
 	chatID int64,
 	username string,
 	groupName string,
@@ -115,7 +115,7 @@ func NewCharacterFromDB(
 }
 
 func ValidateGroupName(groupName string) error {
-	pattern := `^[А-Я]{2}\d{1,2}\-\d{1,2}[А-Я]?$`
+	pattern := `^СМ\d{1,2}\-\d{2,3}[Б]?$`
 	if !regexp.MustCompile(pattern).MatchString(groupName) {
 		return commonerrs.NewInvalidInputError(
 			fmt.Sprintf(
@@ -261,8 +261,16 @@ func (c *Character) Book(loc *Location, t time.Time) error {
 	return nil
 }
 
-var ErrCharacterHasNotBooking = errors.New("not booked")
-var ErrCharacterBookingMismatch = errors.New("booking location mismatch")
+var ErrCharacterHasNotBooking = errors.New("character has not booked location")
+var ErrCharacterBookingMismatch = errors.New("character booking location mismatch")
+
+func (c *Character) BookedLocation() (string, error) {
+	if !c.HasBooking() {
+		return "", ErrCharacterHasNotBooking
+	}
+
+	return *c.BookedLocationUUID, nil
+}
 
 func (c *Character) RemoveBooking(l *Location) error {
 	if !c.HasBooking() {

@@ -12,11 +12,15 @@ type Application struct {
 
 type Commands struct {
 	StartInstruction command.StartInstructionHandler
-	BookLocation     command.BookLocationHandler
+
+	BookLocation  command.BookLocationHandler
+	CancelBooking command.CancelBookingHandler
 }
 
 type Queries struct {
-	GetCharacter          query.GetCharacterHandler
+	GetCharacter query.GetCharacterHandler
+
+	GetLocation           query.GetLocationHandler
 	GetAllLocations       query.GetAllLocationsHandler
 	GetLocationByName     query.GetLocationByNameHandler
 	GetAvailableIntervals query.GetAvailableIntervalsHandler

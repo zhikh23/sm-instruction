@@ -2,8 +2,9 @@ package mocks
 
 import (
 	"context"
-	"sm-instruction/internal/domain/sm"
 	"sync"
+
+	"sm-instruction/internal/domain/sm"
 )
 
 type mockLocationsRepository struct {
@@ -15,8 +16,8 @@ func NewMockLocationsRepository() sm.LocationsRepository {
 	r := &mockLocationsRepository{
 		m: make(map[string]sm.Location),
 	}
-	r.m["1"] = *sm.MustNewLocation("1", "ССФСМ", []sm.SkillType{sm.Social, sm.Creative})
-	r.m["2"] = *sm.MustNewLocation("2", "BRT", []sm.SkillType{sm.Engineering, sm.Sportive})
+	r.m["1"] = *sm.MustNewLocation("1", "ССФСМ", "339м", []sm.SkillType{sm.Social, sm.Creative})
+	r.m["2"] = *sm.MustNewLocation("2", "BRT", "ICAR", []sm.SkillType{sm.Engineering, sm.Sportive})
 	return r
 }
 
