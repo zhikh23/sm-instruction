@@ -11,7 +11,6 @@ import (
 	"sm-instruction/internal/domain/sm"
 )
 
-const randomChatID = 42
 const randomGroupName = "СМ1-11Б"
 const randomUsername = "username"
 
@@ -45,8 +44,7 @@ func TestValidateGroupName(t *testing.T) {
 
 func TestCharacter_Rating(t *testing.T) {
 	t.Run("rating without factor", func(t *testing.T) {
-		user := sm.MustNewUser(42, "@test")
-		char := sm.MustNewCharacter(user, "СМ1-11Б")
+		char := sm.MustNewCharacter(randomUsername, "СМ1-11Б")
 
 		require.Zero(t, char.Rating())
 		require.NoError(t, char.IncSkill(sm.Engineering, 3))
@@ -55,8 +53,7 @@ func TestCharacter_Rating(t *testing.T) {
 	})
 
 	t.Run("rating without general skills", func(t *testing.T) {
-		user := sm.MustNewUser(42, "@test")
-		char := sm.MustNewCharacter(user, "СМ1-11Б")
+		char := sm.MustNewCharacter(randomUsername, "СМ1-11Б")
 
 		require.Zero(t, char.Rating())
 		require.NoError(t, char.IncSkill(sm.Creative, 3))
@@ -65,8 +62,7 @@ func TestCharacter_Rating(t *testing.T) {
 	})
 
 	t.Run("rating with factor", func(t *testing.T) {
-		user := sm.MustNewUser(42, "@test")
-		char := sm.MustNewCharacter(user, "СМ1-11Б")
+		char := sm.MustNewCharacter(randomUsername, "СМ1-11Б")
 
 		require.Zero(t, char.Rating())
 		require.NoError(t, char.IncSkill(sm.Engineering, 3))
@@ -82,8 +78,7 @@ func TestCharacter_Rating(t *testing.T) {
 
 func TestCharacter_IncSkill(t *testing.T) {
 	t.Run("should increment character's skill", func(t *testing.T) {
-		user := sm.MustNewUser(42, "@test")
-		char := sm.MustNewCharacter(user, "СМ1-11Б")
+		char := sm.MustNewCharacter(randomUsername, "СМ1-11Б")
 
 		score := 5
 		require.Zero(t, char.Skill(sm.Engineering))
@@ -93,8 +88,7 @@ func TestCharacter_IncSkill(t *testing.T) {
 	})
 
 	t.Run("should return error if score is invalid", func(t *testing.T) {
-		user := sm.MustNewUser(42, "@test")
-		char := sm.MustNewCharacter(user, "СМ1-11Б")
+		char := sm.MustNewCharacter(randomUsername, "СМ1-11Б")
 
 		score := 10
 		require.Zero(t, char.Skill(sm.Engineering))
@@ -106,11 +100,10 @@ func TestCharacter_IncSkill(t *testing.T) {
 
 func TestCharacter_Booking(t *testing.T) {
 	t.Run("should book location", func(t *testing.T) {
-		user := sm.MustNewUser(42, "test")
-		char := sm.MustNewCharacter(user, randomGroupName)
+		char := sm.MustNewCharacter(randomUsername, randomGroupName)
 		require.NoError(t, char.Start())
 
-		loc := sm.MustNewLocation("1234", "345", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
+		loc := sm.MustNewLocation("1234", "345", "Description", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
 
 		from := timeWithMinutes(30)
 		err := char.Book(loc, from)
@@ -119,11 +112,10 @@ func TestCharacter_Booking(t *testing.T) {
 	})
 
 	t.Run("should return error if character already has booking", func(t *testing.T) {
-		user := sm.MustNewUser(42, "test")
-		char := sm.MustNewCharacter(user, randomGroupName)
+		char := sm.MustNewCharacter(randomUsername, randomGroupName)
 		require.NoError(t, char.Start())
 
-		loc := sm.MustNewLocation("1234", "345", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
+		loc := sm.MustNewLocation("1234", "345", "Description", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
 
 		from := timeWithMinutes(30)
 		err := char.Book(loc, from)
@@ -135,14 +127,12 @@ func TestCharacter_Booking(t *testing.T) {
 	})
 
 	t.Run("should return error if location is already booked", func(t *testing.T) {
-		loc := sm.MustNewLocation("1234", "345", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
+		loc := createLocation()
 
-		user1 := sm.MustNewUser(42, "test")
-		char1 := sm.MustNewCharacter(user1, randomGroupName)
+		char1 := sm.MustNewCharacter("username2", randomGroupName)
 		require.NoError(t, char1.Start())
 
-		user2 := sm.MustNewUser(42, "test")
-		char2 := sm.MustNewCharacter(user2, randomGroupName)
+		char2 := sm.MustNewCharacter("username1", randomGroupName)
 		require.NoError(t, char2.Start())
 
 		from := timeWithMinutes(30)
@@ -155,11 +145,10 @@ func TestCharacter_Booking(t *testing.T) {
 	})
 
 	t.Run("should return error if book interval is invalid", func(t *testing.T) {
-		user := sm.MustNewUser(42, "test")
-		char := sm.MustNewCharacter(user, randomGroupName)
+		char := sm.MustNewCharacter(randomUsername, randomGroupName)
 		require.NoError(t, char.Start())
 
-		loc := sm.MustNewLocation("1234", "345", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
+		loc := sm.MustNewLocation("1234", "345", "Desc", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
 
 		from := timeWithMinutes(45)
 		err := char.Book(loc, from)
@@ -167,11 +156,10 @@ func TestCharacter_Booking(t *testing.T) {
 	})
 
 	t.Run("should return error if booking is too late", func(t *testing.T) {
-		user := sm.MustNewUser(42, "test")
-		char := sm.MustNewCharacter(user, randomGroupName)
+		char := sm.MustNewCharacter(randomUsername, randomGroupName)
 		require.NoError(t, char.Start())
 
-		loc := sm.MustNewLocation("1234", "345", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
+		loc := sm.MustNewLocation("1234", "345", "Desc", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
 
 		from := time.Now().Add(-16 * time.Minute).Round(30 * time.Minute)
 		err := char.Book(loc, from)
@@ -179,11 +167,10 @@ func TestCharacter_Booking(t *testing.T) {
 	})
 
 	t.Run("should return error if character has ended Instruction", func(t *testing.T) {
-		user := sm.MustNewUser(42, "test")
-		char := sm.MustNewCharacter(user, randomGroupName)
+		char := sm.MustNewCharacter(randomUsername, randomGroupName)
 		require.NoError(t, char.Start())
 
-		loc := sm.MustNewLocation("1234", "345", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
+		loc := sm.MustNewLocation("1234", "345", "Desc", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
 
 		from := time.Now().Add(sm.MaxDurationInstruction).Round(20 * time.Minute).Add(20 * time.Minute)
 		err := char.Book(loc, from)
@@ -192,8 +179,7 @@ func TestCharacter_Booking(t *testing.T) {
 }
 
 func TestCharacter_Start(t *testing.T) {
-	user := sm.MustNewUser(42, "test")
-	char := sm.MustNewCharacter(user, randomGroupName)
+	char := sm.MustNewCharacter(randomUsername, randomGroupName)
 
 	require.NoError(t, char.Start())
 	require.True(t, char.IsStarted())
@@ -202,8 +188,7 @@ func TestCharacter_Start(t *testing.T) {
 
 func TestCharacter_Finish(t *testing.T) {
 	t.Run("should finish started character", func(t *testing.T) {
-		user := sm.MustNewUser(42, "test")
-		char := sm.MustNewCharacter(user, randomGroupName)
+		char := sm.MustNewCharacter(randomUsername, randomGroupName)
 
 		require.NoError(t, char.Start())
 		require.NoError(t, char.Finish())
@@ -222,4 +207,30 @@ func timeWithMinutes(minutes int) time.Time {
 		minutes, 0, 0,
 		time.Local,
 	).Add(2 * time.Hour)
+}
+
+type createLocationParams struct {
+	UUID        string
+	Name        string
+	Description string
+	Where       string
+	Skills      []sm.SkillType
+}
+
+type createLocationOption func(params *createLocationParams)
+
+func createLocation(opts ...createLocationOption) *sm.Location {
+	params := createLocationParams{
+		UUID:        "1234",
+		Name:        "Test",
+		Description: "Test",
+		Where:       "501м",
+		Skills:      []sm.SkillType{sm.Engineering, sm.Sportive},
+	}
+
+	for _, opt := range opts {
+		opt(&params)
+	}
+
+	return sm.MustNewLocation(params.UUID, params.Name, params.Description, params.Where, params.Skills)
 }

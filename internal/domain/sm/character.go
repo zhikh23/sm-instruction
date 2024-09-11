@@ -225,7 +225,7 @@ func (c *Character) CanBook(loc *Location, t time.Time) error {
 		return ErrCharacterBookingIsTooLate
 	}
 
-	if t.Sub(time.Now()).Abs() < MinimalDurationBeforeBooking {
+	if t.Sub(time.Now()) < MinimalDurationBeforeBooking {
 		return ErrCharacterBookingIsTooClose
 	}
 

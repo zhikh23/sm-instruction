@@ -12,13 +12,13 @@ const randomLocationUUID = "1234"
 
 func TestLocationFactory_NewLocation(t *testing.T) {
 	t.Run("should create new location", func(t *testing.T) {
-		l, err := sm.NewLocation(randomLocationUUID, "345", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
+		l, err := sm.NewLocation(randomLocationUUID, "345", "Desc", "Test", []sm.SkillType{sm.Engineering, sm.Sportive})
 		require.NoError(t, err)
 		require.NotNil(t, l)
 	})
 
 	t.Run("should return error if skills number is invalid", func(t *testing.T) {
-		l, err := sm.NewLocation(randomLocationUUID, "543", "Test", []sm.SkillType{sm.Engineering, sm.Sportive, sm.Researching})
+		l, err := sm.NewLocation(randomLocationUUID, "543", "Desc", "Test", []sm.SkillType{sm.Engineering, sm.Sportive, sm.Researching})
 		require.Error(t, err)
 		require.Nil(t, l)
 	})
@@ -26,7 +26,7 @@ func TestLocationFactory_NewLocation(t *testing.T) {
 
 func TestLocation_AddBooking(t *testing.T) {
 	t.Run("should add booking", func(t *testing.T) {
-		loc := sm.MustNewLocation(randomLocationUUID, "301с", "Test", []sm.SkillType{sm.Researching, sm.Social})
+		loc := sm.MustNewLocation(randomLocationUUID, "301с", "Desc", "Test", []sm.SkillType{sm.Researching, sm.Social})
 
 		bt := timeWithMinutes(30)
 		err := loc.AddBooking(bt, randomUsername)
@@ -36,7 +36,7 @@ func TestLocation_AddBooking(t *testing.T) {
 	})
 
 	t.Run("should return error if already booked", func(t *testing.T) {
-		loc := sm.MustNewLocation(randomLocationUUID, "345", "Test", []sm.SkillType{sm.Researching, sm.Social})
+		loc := sm.MustNewLocation(randomLocationUUID, "345", "Desc", "Test", []sm.SkillType{sm.Researching, sm.Social})
 
 		bt := timeWithMinutes(30)
 		require.NoError(t, loc.AddBooking(bt, randomUsername))
@@ -47,10 +47,9 @@ func TestLocation_AddBooking(t *testing.T) {
 
 func TestLocation_Complete(t *testing.T) {
 	t.Run("should complete character task", func(t *testing.T) {
-		loc := sm.MustNewLocation(randomLocationUUID, "ICAR", "Test", []sm.SkillType{sm.Engineering, sm.Social})
+		loc := sm.MustNewLocation(randomLocationUUID, "ICAR", "Desc", "Test", []sm.SkillType{sm.Engineering, sm.Social})
 
-		user := sm.MustNewUser(randomChatID, randomUsername)
-		char := sm.MustNewCharacter(user, randomGroupName)
+		char := sm.MustNewCharacter(randomUsername, randomGroupName)
 		require.NoError(t, char.Start())
 
 		bt := timeWithMinutes(30)
@@ -65,10 +64,9 @@ func TestLocation_Complete(t *testing.T) {
 	})
 
 	t.Run("should return error if location cannot inc skill", func(t *testing.T) {
-		loc := sm.MustNewLocation(randomLocationUUID, "345", "Test", []sm.SkillType{sm.Researching, sm.Social})
+		loc := sm.MustNewLocation(randomLocationUUID, "345", "Desc", "Test", []sm.SkillType{sm.Researching, sm.Social})
 
-		user := sm.MustNewUser(randomChatID, randomUsername)
-		char := sm.MustNewCharacter(user, randomGroupName)
+		char := sm.MustNewCharacter(randomUsername, randomGroupName)
 		require.NoError(t, char.Start())
 
 		bt := timeWithMinutes(30)
