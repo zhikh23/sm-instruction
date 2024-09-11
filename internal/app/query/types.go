@@ -7,12 +7,12 @@ import (
 )
 
 type User struct {
-	ChatID   int64
 	Username string
+	Role     string
 }
 
 type Character struct {
-	Head      User
+	Username  string
 	GroupName string
 	Skills    map[string]int
 	StartedAt *time.Time
@@ -30,6 +30,7 @@ type BookedInterval struct {
 type Location struct {
 	UUID            string
 	Name            string
+	Description     string
 	Where           string
 	Booked          []BookedInterval
 	Administrators  []User
@@ -58,7 +59,7 @@ func convertSkillsToApp(m map[sm.SkillType]int) map[string]int {
 
 func convertCharacterToApp(c *sm.Character) Character {
 	return Character{
-		Head:      convertUserToApp(c.Head),
+		Username:  c.Username,
 		GroupName: c.GroupName,
 		Skills:    convertSkillsToApp(c.Skills),
 		StartedAt: c.StartedAt,
@@ -71,22 +72,22 @@ func convertCharacterToApp(c *sm.Character) Character {
 
 func convertUserToApp(u sm.User) User {
 	return User{
-		ChatID:   u.ChatID,
 		Username: u.Username,
+		Role:     u.Role.String(),
 	}
 }
 
-func convertBookedIntervalToApp(i sm.BookedTime) BookedInterval {
+func convertBookedTimeToApp(i sm.BookedTime) BookedInterval {
 	return BookedInterval{
 		Time:       i.Time,
 		ByUsername: i.ByUsername,
 	}
 }
 
-func convertBookedIntervalsToApp(is []sm.BookedTime) []BookedInterval {
+func convertBookedTimesToApp(is []sm.BookedTime) []BookedInterval {
 	res := make([]BookedInterval, len(is))
 	for i, in := range is {
-		res[i] = convertBookedIntervalToApp(in)
+		res[i] = convertBookedTimeToApp(in)
 	}
 	return res
 }
@@ -103,8 +104,9 @@ func convertLocationToApp(l *sm.Location) Location {
 	return Location{
 		UUID:            l.UUID,
 		Name:            l.Name,
+		Description:     l.Description,
 		Where:           l.Where,
-		Booked:          convertBookedIntervalsToApp(l.Booked),
+		Booked:          convertBookedTimesToApp(l.Booked),
 		Administrators:  convertUsersToApp(l.Administrators),
 		AvailableSkills: convertSkillTypesToApp(l.AvailableSkills),
 	}

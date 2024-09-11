@@ -9,7 +9,7 @@ import (
 )
 
 type GetCharacter struct {
-	ChatID int64
+	Username string
 }
 
 type GetCharacterHandler decorator.QueryHandler[GetCharacter, Character]
@@ -24,7 +24,7 @@ func NewGetCharacterHandler(
 	metricsClient decorator.MetricsClient,
 ) GetCharacterHandler {
 	if chars == nil {
-		panic("chars is nil")
+		panic("characters repository is nil")
 	}
 
 	return decorator.ApplyQueryDecorators[GetCharacter, Character](
@@ -35,7 +35,7 @@ func NewGetCharacterHandler(
 }
 
 func (h getCharacterHandler) Handle(ctx context.Context, query GetCharacter) (Character, error) {
-	char, err := h.chars.Character(ctx, query.ChatID)
+	char, err := h.chars.Character(ctx, query.Username)
 	if err != nil {
 		return Character{}, err
 	}

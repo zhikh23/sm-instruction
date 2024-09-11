@@ -18,10 +18,14 @@ type Commands struct {
 }
 
 type Queries struct {
-	GetCharacter query.GetCharacterHandler
+	UserIsAdministrator query.UserIsAdministratorHandler
+
+	CharacterIsStarted query.CharacterIsStartedHandler
+	GetCharacter       query.GetCharacterHandler
 
 	GetLocation           query.GetLocationHandler
 	GetAllLocations       query.GetAllLocationsHandler
 	GetLocationByName     query.GetLocationByNameHandler
+	GetLocationByAdmin    query.GetLocationByAdminHandler
 	GetAvailableIntervals query.GetAvailableIntervalsHandler
 }

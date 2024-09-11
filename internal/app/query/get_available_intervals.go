@@ -10,7 +10,7 @@ import (
 )
 
 type GetAvailableIntervals struct {
-	ChatID       int64
+	Username     string
 	LocationUUID string
 }
 
@@ -43,7 +43,7 @@ func NewGetAvailableIntervalsHandler(
 }
 
 func (h *getAvailableIntervalsHandler) Handle(ctx context.Context, query GetAvailableIntervals) ([]time.Time, error) {
-	char, err := h.chars.Character(ctx, query.ChatID)
+	char, err := h.chars.Character(ctx, query.Username)
 	if err != nil {
 		return nil, err
 	}

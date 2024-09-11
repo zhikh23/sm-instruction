@@ -13,6 +13,7 @@ const AvailableSkillsNumber = 2
 type Location struct {
 	UUID            string
 	Name            string
+	Description     string
 	Where           string
 	Booked          []BookedTime
 	Administrators  []User
@@ -22,11 +23,16 @@ type Location struct {
 func NewLocation(
 	uuid string,
 	name string,
+	description string,
 	where string,
 	availableSkills []SkillType,
 ) (*Location, error) {
 	if uuid == "" {
 		return nil, commonerrs.NewInvalidInputError("expected not empty location uuid")
+	}
+
+	if description == "" {
+		return nil, commonerrs.NewInvalidInputError("expected not empty location description")
 	}
 
 	if where == "" {
@@ -47,6 +53,7 @@ func NewLocation(
 	return &Location{
 		UUID:            uuid,
 		Name:            name,
+		Description:     description,
 		Where:           where,
 		Booked:          make([]BookedTime, 0),
 		Administrators:  make([]User, 0),
@@ -57,10 +64,11 @@ func NewLocation(
 func MustNewLocation(
 	uuid string,
 	name string,
+	description string,
 	where string,
 	availableSkills []SkillType,
 ) *Location {
-	l, err := NewLocation(uuid, name, where, availableSkills)
+	l, err := NewLocation(uuid, name, description, where, availableSkills)
 	if err != nil {
 		panic(err)
 	}
@@ -70,6 +78,7 @@ func MustNewLocation(
 func UnmarshallLocationFromDB(
 	uuid string,
 	name string,
+	description string,
 	where string,
 	availableSkills []string,
 	booked []BookedTime,
@@ -81,6 +90,10 @@ func UnmarshallLocationFromDB(
 
 	if name == "" {
 		return nil, commonerrs.NewInvalidInputError("expected not empty location name")
+	}
+
+	if description == "" {
+		return nil, commonerrs.NewInvalidInputError("expected not empty location description")
 	}
 
 	if where == "" {
@@ -123,6 +136,7 @@ func UnmarshallLocationFromDB(
 	return &Location{
 		UUID:            uuid,
 		Name:            name,
+		Description:     description,
 		Where:           where,
 		Booked:          booked,
 		Administrators:  administrators,
@@ -200,4 +214,27 @@ func (l *Location) AvailableTimes(to time.Time) []time.Time {
 	}
 
 	return times
+}
+
+func (l *Location) HasAdministrator(username string) bool {
+	for _, a := range l.Administrators {
+		if a.Username == username {
+			return true
+		}
+	}
+	return false
+}
+
+var ErrAdministratorAlreadyExists = errors.New("administrator already exists")
+
+func (l *Location) AddAdministrator(user User) error {
+	for _, a := range l.Administrators {
+		if a.Username == user.Username {
+			return ErrAdministratorAlreadyExists
+		}
+	}
+
+	l.Administrators = append(l.Administrators, user)
+
+	return nil
 }

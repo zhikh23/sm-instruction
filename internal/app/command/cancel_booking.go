@@ -3,12 +3,13 @@ package command
 import (
 	"context"
 	"log/slog"
+
 	"sm-instruction/internal/common/decorator"
 	"sm-instruction/internal/domain/sm"
 )
 
 type CancelBooking struct {
-	ChatID int64
+	Username string
 }
 
 type CancelBookingHandler decorator.CommandHandler[CancelBooking]
@@ -40,7 +41,7 @@ func NewCancelBookingHandler(
 }
 
 func (h *cancelBookingHandler) Handle(ctx context.Context, cmd CancelBooking) error {
-	return h.chars.Update(ctx, cmd.ChatID, func(innerCtx context.Context, char *sm.Character) error {
+	return h.chars.Update(ctx, cmd.Username, func(innerCtx context.Context, char *sm.Character) error {
 		locUUID, err := char.BookedLocation()
 		if err != nil {
 			return err

@@ -11,7 +11,7 @@ import (
 
 type BookLocation struct {
 	LocationUUID string
-	ChatID       int64
+	Username     string
 	Time         time.Time
 }
 
@@ -45,7 +45,7 @@ func NewBookLocationHandler(
 
 func (h *bookLocationHandler) Handle(ctx context.Context, cmd BookLocation) error {
 	return h.locs.Update(ctx, cmd.LocationUUID, func(innerCtx context.Context, loc *sm.Location) error {
-		return h.chars.Update(innerCtx, cmd.ChatID, func(innerCtx2 context.Context, char *sm.Character) error {
+		return h.chars.Update(innerCtx, cmd.Username, func(innerCtx2 context.Context, char *sm.Character) error {
 			return char.Book(loc, cmd.Time)
 		})
 	})

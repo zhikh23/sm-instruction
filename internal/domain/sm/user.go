@@ -1,10 +1,12 @@
 package sm
 
-import "sm-instruction/internal/common/commonerrs"
+import (
+	"sm-instruction/internal/common/commonerrs"
+)
 
 type User struct {
-	ChatID   int64
 	Username string
+	Role     Role
 }
 
 func (u User) IsZero() bool {
@@ -12,30 +14,53 @@ func (u User) IsZero() bool {
 }
 
 func NewUser(
-	chatID int64,
 	username string,
+	role Role,
 ) (User, error) {
-	if chatID == 0 {
-		return User{}, commonerrs.NewInvalidInputError("expected not empty chat ID")
-	}
-
 	if username == "" {
 		return User{}, commonerrs.NewInvalidInputError("expected not empty username")
 	}
 
+	if role.IsZero() {
+		return User{}, commonerrs.NewInvalidInputError("expected not empty role")
+	}
+
 	return User{
-		ChatID:   chatID,
 		Username: username,
+		Role:     role,
 	}, nil
 }
 
 func MustNewUser(
-	chatID int64,
 	username string,
+	role Role,
 ) User {
-	u, err := NewUser(chatID, username)
+	u, err := NewUser(username, role)
 	if err != nil {
 		panic(err)
 	}
 	return u
+}
+
+func UnmarshallUserFromDB(
+	username string,
+	role string,
+) (User, error) {
+	if username == "" {
+		return User{}, commonerrs.NewInvalidInputError("expected not empty username")
+	}
+
+	if role == "" {
+		return User{}, commonerrs.NewInvalidInputError("expected not empty role")
+	}
+
+	r, err := NewRoleFromString(role)
+	if err != nil {
+		return User{}, err
+	}
+
+	return User{
+		Username: username,
+		Role:     r,
+	}, nil
 }

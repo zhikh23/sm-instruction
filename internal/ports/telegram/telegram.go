@@ -36,19 +36,26 @@ func NewTelegramPort(app *app.Application) *Port {
 
 const (
 	startReadGroupNameState = fsm.State("startReadGroupNameState")
-	menuCommandState        = fsm.State("menuCommandState")
-
+	participantMenuState    = fsm.State("participantMenuState")
 	bookChooseLocationState = fsm.State("bookChooseLocationState")
+	bookApproveLocation     = fsm.State("bookApproveLocation")
 	bookChooseTimeState     = fsm.State("bookChooseTimeState")
+
+	adminMenuState = fsm.State("adminMenuState")
 )
 
 const (
+	approveButton = "Подтвердить"
+	cancelButton  = "Отменить"
+
 	toBookButton       = "Забронировать точку"
 	toCancelBookButton = "Отменить бронирование точки"
 	toCharacterProfile = "Перейти в профиль"
+
+	toShowBookings = "Показать забронированные точки"
 )
 
-func (p *Port) menuReplyMarkup(char query.Character) *telebot.ReplyMarkup {
+func (p *Port) participantMenuReplyMarkup(char query.Character) *telebot.ReplyMarkup {
 	opts := make([]string, 0)
 
 	opts = append(opts, toCharacterProfile)
@@ -57,6 +64,16 @@ func (p *Port) menuReplyMarkup(char query.Character) *telebot.ReplyMarkup {
 	} else {
 		opts = append(opts, toCancelBookButton)
 	}
+
+	return &telebot.ReplyMarkup{
+		ReplyKeyboard: makeReplyButtonsForMenu(opts),
+	}
+}
+
+func (p *Port) adminMenuReplyMarkup() *telebot.ReplyMarkup {
+	opts := make([]string, 0)
+
+	opts = append(opts, toShowBookings)
 
 	return &telebot.ReplyMarkup{
 		ReplyKeyboard: makeReplyButtonsForMenu(opts),
@@ -84,14 +101,32 @@ func (p *Port) RegisterFSMManager(m *fsm.Manager, dp fsm.Dispatcher) {
 
 	dp.Dispatch(m.New(
 		fsmopt.On(toBookButton),
-		fsmopt.OnStates(menuCommandState),
+		fsmopt.OnStates(participantMenuState),
 		fsmopt.Do(p.book),
 	))
 
 	dp.Dispatch(m.New(
 		fsmopt.On(telebot.OnText),
 		fsmopt.OnStates(bookChooseLocationState),
-		fsmopt.Do(p.bookChooseLocation),
+		fsmopt.Do(p.bookLocationDescribe),
+	))
+
+	dp.Dispatch(m.New(
+		fsmopt.On(approveButton),
+		fsmopt.OnStates(bookApproveLocation),
+		fsmopt.Do(p.bookChooseLocationTime),
+	))
+
+	dp.Dispatch(m.New(
+		fsmopt.On(cancelButton),
+		fsmopt.OnStates(bookApproveLocation),
+		fsmopt.Do(p.book),
+	))
+
+	dp.Dispatch(m.New(
+		fsmopt.On(toCharacterProfile),
+		fsmopt.OnStates(participantMenuState),
+		fsmopt.Do(p.profile),
 	))
 
 	dp.Dispatch(m.New(
@@ -101,15 +136,21 @@ func (p *Port) RegisterFSMManager(m *fsm.Manager, dp fsm.Dispatcher) {
 	))
 
 	dp.Dispatch(m.New(
-		fsmopt.On(toCharacterProfile),
-		fsmopt.OnStates(menuCommandState),
-		fsmopt.Do(p.profile),
+		fsmopt.On(toCancelBookButton),
+		fsmopt.OnStates(participantMenuState),
+		fsmopt.Do(p.cancelBooking),
 	))
 
 	dp.Dispatch(m.New(
-		fsmopt.On(toCancelBookButton),
-		fsmopt.OnStates(menuCommandState),
-		fsmopt.Do(p.cancelBooking),
+		fsmopt.On(toShowBookings),
+		fsmopt.OnStates(adminMenuState),
+		fsmopt.Do(p.showBookings),
+	))
+
+	dp.Dispatch(m.New(
+		fsmopt.On("/admin"),
+		fsmopt.OnStates(fsm.AnyState),
+		fsmopt.Do(p.adminMenu),
 	))
 }
 
@@ -121,8 +162,21 @@ func (p *Port) cancel(c telebot.Context, state fsm.Context) error {
 func (p *Port) start(c telebot.Context, state fsm.Context) error {
 	ctx := context.Background()
 
-	char, err := p.app.Queries.GetCharacter.Handle(ctx, query.GetCharacter{ChatID: c.Chat().ID})
-	if errors.Is(err, sm.ErrCharacterNotFound) {
+	isAdmin, err := p.app.Queries.UserIsAdministrator.Handle(ctx, query.UserIsAdministrator{Username: c.Chat().Username})
+	if err != nil {
+		return err
+	}
+
+	if isAdmin {
+		return p.adminMenu(c, state)
+	}
+
+	isStarted, err := p.app.Queries.CharacterIsStarted.Handle(ctx, query.CharacterIsStarted{Username: c.Chat().Username})
+	if err != nil {
+		return err
+	}
+
+	if !isStarted {
 		err = state.SetState(ctx, startReadGroupNameState)
 		if err != nil {
 			return err
@@ -132,11 +186,14 @@ func (p *Port) start(c telebot.Context, state fsm.Context) error {
 			"Привет, участник «СМ. Инструкция по выживанию»!\n" +
 				"Для начала, напиши пожалуйста свою группу, например: СМ1-11Б.",
 		)
-	} else if err != nil {
+	}
+
+	char, err := p.app.Queries.GetCharacter.Handle(ctx, query.GetCharacter{Username: c.Chat().Username})
+	if err != nil {
 		return err
 	}
 
-	return c.Send("Что нужно сделать?", p.menuReplyMarkup(char))
+	return c.Send("Что нужно сделать?", p.participantMenuReplyMarkup(char))
 }
 
 func (p *Port) startReadGroupName(c telebot.Context, state fsm.Context) error {
@@ -155,12 +212,12 @@ func (p *Port) startReadGroupName(c telebot.Context, state fsm.Context) error {
 		return err
 	}
 
-	char, err := p.app.Queries.GetCharacter.Handle(ctx, query.GetCharacter{ChatID: c.Chat().ID})
+	char, err := p.app.Queries.GetCharacter.Handle(ctx, query.GetCharacter{Username: c.Chat().Username})
 	if err != nil {
 		return err
 	}
 
-	err = state.SetState(ctx, menuCommandState)
+	err = state.SetState(ctx, participantMenuState)
 	if err != nil {
 		return err
 	}
@@ -168,14 +225,14 @@ func (p *Port) startReadGroupName(c telebot.Context, state fsm.Context) error {
 	return c.Send(
 		"Хорошо, теперь ты можешь приступать к инструкции!\n"+
 			"У тебя есть 4 часа на прохождение всех точек, поэтому поторопись :)\n"+
-			"Полный список команд ты можешь узнать при помощи /help.", p.menuReplyMarkup(char),
+			"Полный список команд ты можешь узнать при помощи /help.", p.participantMenuReplyMarkup(char),
 	)
 }
 
-func (p *Port) menu(c telebot.Context, state fsm.Context) error {
+func (p *Port) participantMenu(c telebot.Context, state fsm.Context) error {
 	ctx := context.Background()
 
-	err := state.SetState(ctx, menuCommandState)
+	err := state.SetState(ctx, participantMenuState)
 	if err != nil {
 		return err
 	}
@@ -190,10 +247,21 @@ func (p *Port) menu(c telebot.Context, state fsm.Context) error {
 	})
 }
 
+func (p *Port) adminMenu(c telebot.Context, state fsm.Context) error {
+	ctx := context.Background()
+
+	err := state.SetState(ctx, adminMenuState)
+	if err != nil {
+		return err
+	}
+
+	return c.Send("Панель управления администратора. Выбери действие:", p.adminMenuReplyMarkup())
+}
+
 func (p *Port) book(c telebot.Context, state fsm.Context) error {
 	ctx := context.Background()
 
-	char, err := p.app.Queries.GetCharacter.Handle(ctx, query.GetCharacter{ChatID: c.Chat().ID})
+	char, err := p.app.Queries.GetCharacter.Handle(ctx, query.GetCharacter{Username: c.Chat().Username})
 	if err != nil {
 		return err
 	}
@@ -217,10 +285,9 @@ func (p *Port) book(c telebot.Context, state fsm.Context) error {
 	})
 }
 
-func (p *Port) bookChooseLocation(c telebot.Context, state fsm.Context) error {
+func (p *Port) bookLocationDescribe(c telebot.Context, state fsm.Context) error {
 	ctx := context.Background()
 
-	chatID := c.Chat().ID
 	locationName := c.Message().Text
 
 	loc, err := p.app.Queries.GetLocationByName.Handle(ctx, query.GetLocationByName{Name: locationName})
@@ -231,10 +298,35 @@ func (p *Port) bookChooseLocation(c telebot.Context, state fsm.Context) error {
 	}
 
 	err = state.Update(ctx, "locationUUID", loc.UUID)
+	if err != nil {
+		return err
+	}
+
+	err = state.SetState(ctx, bookApproveLocation)
+	if err != nil {
+		return err
+	}
+
+	return c.Send(
+		"Описание точки:\n\n"+loc.Description+"\n Подтверждаешь бронирование?",
+		&telebot.ReplyMarkup{
+			ReplyKeyboard: makeReplyButtonsApprove(),
+		},
+	)
+}
+
+func (p *Port) bookChooseLocationTime(c telebot.Context, state fsm.Context) error {
+	ctx := context.Background()
+
+	var locationUUID string
+	err := state.Data(ctx, "locationUUID", &locationUUID)
+	if err != nil {
+		return err
+	}
 
 	available, err := p.app.Queries.GetAvailableIntervals.Handle(ctx, query.GetAvailableIntervals{
-		ChatID:       chatID,
-		LocationUUID: loc.UUID,
+		Username:     c.Chat().Username,
+		LocationUUID: locationUUID,
 	})
 	if err != nil {
 		return err
@@ -274,7 +366,7 @@ func (p *Port) bookChooseTime(c telebot.Context, state fsm.Context) error {
 
 	err = p.app.Commands.BookLocation.Handle(ctx, command.BookLocation{
 		LocationUUID: locationUUID,
-		ChatID:       c.Chat().ID,
+		Username:     c.Chat().Username,
 		Time:         t,
 	})
 	switch {
@@ -292,12 +384,12 @@ func (p *Port) bookChooseTime(c telebot.Context, state fsm.Context) error {
 		return err
 	}
 
-	char, err := p.app.Queries.GetCharacter.Handle(ctx, query.GetCharacter{ChatID: c.Chat().ID})
+	char, err := p.app.Queries.GetCharacter.Handle(ctx, query.GetCharacter{Username: c.Chat().Username})
 	if err != nil {
 		return err
 	}
 
-	err = state.SetState(ctx, menuCommandState)
+	err = state.SetState(ctx, participantMenuState)
 	if err != nil {
 		return err
 	}
@@ -305,35 +397,35 @@ func (p *Port) bookChooseTime(c telebot.Context, state fsm.Context) error {
 	return c.Send(
 		"Успешно забронировано! "+
 			"Местоположение точки и время бронирования можешь посмотреть в своем профиле.",
-		p.menuReplyMarkup(char),
+		p.participantMenuReplyMarkup(char),
 	)
 }
 
 func (p *Port) cancelBooking(c telebot.Context, state fsm.Context) error {
 	ctx := context.Background()
 
-	err := p.app.Commands.CancelBooking.Handle(ctx, command.CancelBooking{ChatID: c.Chat().ID})
+	err := p.app.Commands.CancelBooking.Handle(ctx, command.CancelBooking{Username: c.Chat().Username})
 	if err != nil {
 		return err
 	}
 
-	char, err := p.app.Queries.GetCharacter.Handle(ctx, query.GetCharacter{ChatID: c.Chat().ID})
+	char, err := p.app.Queries.GetCharacter.Handle(ctx, query.GetCharacter{Username: c.Chat().Username})
 	if err != nil {
 		return err
 	}
 
-	err = state.SetState(ctx, menuCommandState)
+	err = state.SetState(ctx, participantMenuState)
 	if err != nil {
 		return err
 	}
 
-	return c.Send("Бронирование отменено.", p.menuReplyMarkup(char))
+	return c.Send("Бронирование отменено.", p.participantMenuReplyMarkup(char))
 }
 
 func (p *Port) profile(c telebot.Context, state fsm.Context) error {
 	ctx := context.Background()
 
-	char, err := p.app.Queries.GetCharacter.Handle(ctx, query.GetCharacter{ChatID: c.Chat().ID})
+	char, err := p.app.Queries.GetCharacter.Handle(ctx, query.GetCharacter{Username: c.Chat().Username})
 	if err != nil {
 		return err
 	}
@@ -353,12 +445,44 @@ func (p *Port) profile(c telebot.Context, state fsm.Context) error {
 		msg += fmt.Sprintf("Местонахождение точки: %s\n", loc.Where)
 	}
 
-	err = state.SetState(ctx, menuCommandState)
+	err = state.SetState(ctx, participantMenuState)
 	if err != nil {
 		return err
 	}
 
-	return c.Send(msg, p.menuReplyMarkup(char))
+	return c.Send(msg, p.participantMenuReplyMarkup(char))
+}
+
+func (p *Port) showBookings(c telebot.Context, state fsm.Context) error {
+	ctx := context.Background()
+
+	loc, err := p.app.Queries.GetLocationByAdmin.Handle(ctx, query.GetLocationByAdmin{Username: c.Chat().Username})
+	if err != nil {
+		return err
+	}
+
+	msg := fmt.Sprintf("Точка '%s'\n", loc.Name)
+	if len(loc.Booked) == 0 {
+		msg += "Не имеет бронирований."
+	}
+	for _, tim := range loc.Booked {
+		msg += fmt.Sprintf("<code>%s</code> - @%s\n", tim.Time.Format(timeFormat), tim.ByUsername)
+	}
+
+	err = state.SetState(ctx, adminMenuState)
+	if err != nil {
+		return err
+	}
+
+	return c.Send(msg, p.adminMenuReplyMarkup(), telebot.ModeHTML)
+}
+
+func makeReplyButtonsApprove() [][]telebot.ReplyButton {
+	buttons := []telebot.ReplyButton{
+		{Text: approveButton},
+		{Text: cancelButton},
+	}
+	return composeButtons(buttons, 2)
 }
 
 func makeReplyButtonsForMenu(opts []string) [][]telebot.ReplyButton {

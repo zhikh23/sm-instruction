@@ -14,7 +14,7 @@ const MaxDurationInstruction = 4 * time.Hour
 const MinimalDurationBeforeBooking = 5 * time.Minute
 
 type Character struct {
-	Head      User
+	Username  string
 	GroupName string
 	Skills    map[SkillType]int
 	StartedAt *time.Time
@@ -25,11 +25,11 @@ type Character struct {
 }
 
 func NewCharacter(
-	head User,
+	username string,
 	groupName string,
 ) (*Character, error) {
-	if head.IsZero() {
-		return nil, commonerrs.NewInvalidInputError("expected not empty head")
+	if username == "" {
+		return nil, commonerrs.NewInvalidInputError("expected not empty username")
 	}
 
 	if groupName == "" {
@@ -46,7 +46,7 @@ func NewCharacter(
 	}
 
 	return &Character{
-		Head:      head,
+		Username:  username,
 		GroupName: groupName,
 		Skills:    skills,
 		StartedAt: nil,
@@ -58,10 +58,10 @@ func NewCharacter(
 }
 
 func MustNewCharacter(
-	head User,
+	username string,
 	groupName string,
 ) *Character {
-	c, err := NewCharacter(head, groupName)
+	c, err := NewCharacter(username, groupName)
 	if err != nil {
 		panic(err)
 	}
@@ -69,7 +69,6 @@ func MustNewCharacter(
 }
 
 func UnmarshallCharacterFromDB(
-	chatID int64,
 	username string,
 	groupName string,
 	engineeringSkill int,
@@ -82,9 +81,8 @@ func UnmarshallCharacterFromDB(
 	bookedLocationTo *time.Time,
 	bookedLocationUUID *string,
 ) (*Character, error) {
-	head, err := NewUser(chatID, username)
-	if err != nil {
-		return nil, err
+	if username == "" {
+		return nil, commonerrs.NewInvalidInputError("expected not empty username")
 	}
 
 	if groupName == "" {
@@ -103,7 +101,7 @@ func UnmarshallCharacterFromDB(
 	skills[Creative] = creativeSkill
 
 	return &Character{
-		Head:      head,
+		Username:  username,
 		GroupName: groupName,
 		Skills:    skills,
 		StartedAt: startedAt,
@@ -183,10 +181,6 @@ func (c *Character) IsProcessing() bool {
 	return c.IsStarted() && !c.IsFinished()
 }
 
-func (c *Character) Username() string {
-	return c.Head.Username
-}
-
 func (c *Character) Skill(t SkillType) int {
 	return c.Skills[t]
 }
@@ -231,8 +225,7 @@ func (c *Character) CanBook(loc *Location, t time.Time) error {
 		return ErrCharacterBookingIsTooLate
 	}
 
-	if t.Sub(time.Now()) < MinimalDurationBeforeBooking {
-		fmt.Println(t, time.Now(), t.Sub(time.Now()))
+	if t.Sub(time.Now()).Abs() < MinimalDurationBeforeBooking {
 		return ErrCharacterBookingIsTooClose
 	}
 
@@ -252,7 +245,7 @@ func (c *Character) Book(loc *Location, t time.Time) error {
 		return err
 	}
 
-	if err := loc.AddBooking(t, c.Username()); err != nil {
+	if err := loc.AddBooking(t, c.Username); err != nil {
 		return err
 	}
 

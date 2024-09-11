@@ -5,17 +5,15 @@ import (
 	"errors"
 )
 
-var (
-	ErrCharacterAlreadyExists = errors.New("character already exists")
-	ErrCharacterNotFound      = errors.New("character not found")
-)
+var ErrCharacterAlreadyExists = errors.New("character already exists")
+var ErrCharacterNotFound = errors.New("character not found")
 
 type CharactersRepository interface {
 	Save(ctx context.Context, character *Character) error
-	Character(ctx context.Context, chatID int64) (*Character, error)
+	Character(ctx context.Context, username string) (*Character, error)
 	Update(
 		ctx context.Context,
-		chatID int64,
+		username string,
 		updateFn func(innerCtx context.Context, char *Character) error,
 	) error
 }
