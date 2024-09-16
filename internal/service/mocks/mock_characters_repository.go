@@ -43,6 +43,19 @@ func (r *mockCharactersRepository) Character(_ context.Context, username string)
 	return &char, nil
 }
 
+func (r *mockCharactersRepository) CharacterByGroup(_ context.Context, groupName string) (*sm.Character, error) {
+	r.RLock()
+	defer r.RUnlock()
+
+	for _, char := range r.m {
+		if char.GroupName == groupName {
+			return &char, nil
+		}
+	}
+
+	return nil, sm.ErrCharacterNotFound
+}
+
 func (r *mockCharactersRepository) Update(
 	ctx context.Context,
 	username string,

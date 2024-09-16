@@ -11,11 +11,11 @@ type SkillType struct {
 }
 
 var (
-	Engineering = SkillType{s: "engineering"}
-	Researching = SkillType{s: "researching"}
-	Social      = SkillType{s: "social"}
-	Creative    = SkillType{s: "creative"}
-	Sportive    = SkillType{s: "sportive"}
+	Engineering = SkillType{s: "Инженерные"}
+	Researching = SkillType{s: "Исследовательские"}
+	Social      = SkillType{s: "Социальные"}
+	Creative    = SkillType{s: "Творческие"}
+	Sportive    = SkillType{s: "Спортивные"}
 )
 
 var GeneralSkill = []SkillType{
@@ -38,18 +38,18 @@ func (s SkillType) IsZero() bool {
 
 func NewSkillTypeFromString(s string) (SkillType, error) {
 	switch s {
-	case "engineering":
+	case "Инженерные":
 		return Engineering, nil
-	case "researching":
+	case "Исследовательские":
 		return Researching, nil
-	case "social":
+	case "Социальные":
 		return Social, nil
-	case "creative":
+	case "Творческие":
 		return Creative, nil
-	case "sportive":
+	case "Спортивные":
 		return Sportive, nil
 	}
 	return SkillType{}, commonerrs.NewInvalidInputError(
-		fmt.Sprintf("invalid skill type %s, expected one of [engineering, researching, creative, sportive]", s),
+		fmt.Sprintf("invalid skill type %s, expected one of [%v]", s, AllSkills),
 	)
 }

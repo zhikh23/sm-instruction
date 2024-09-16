@@ -36,18 +36,23 @@ func newApplication(
 			StartInstruction: command.NewStartInstructionHandler(users, chars, log, metricsClient),
 
 			BookLocation:  command.NewBookLocationHandler(chars, activities, log, metricsClient),
-			CancelBooking: command.NewRemoveBookingHandler(chars, activities, log, metricsClient),
+			RemoveBooking: command.NewRemoveBookingHandler(chars, activities, log, metricsClient),
+
+			AwardCharacter: command.NewAwardCharacterHandler(chars, activities, log, metricsClient),
 		},
 		Queries: app.Queries{
 			UserIsAdministrator: query.NewUserIsAdministratorHandler(users, log, metricsClient),
 
-			CharacterIsStarted: query.NewCharacterIsStarted(chars, log, metricsClient),
-			GetCharacter:       query.NewGetCharacterHandler(chars, log, metricsClient),
+			CharacterIsStarted:  query.NewCharacterIsStarted(chars, log, metricsClient),
+			GetCharacter:        query.NewGetCharacterHandler(chars, log, metricsClient),
+			GetCharacterByGroup: query.NewGetCharacterByGroupHandler(chars, log, metricsClient),
+
+			GetActivity:        query.NewGetActivityHandler(activities, log, metricsClient),
+			GetActivityByAdmin: query.NewGetActivityByAdmin(activities, log, metricsClient),
 
 			GetLocation:           query.NewGetLocationHandler(activities, log, metricsClient),
 			GetAllLocations:       query.NewGetAllLocationsHandler(activities, log, metricsClient),
 			GetLocationByName:     query.NewGetLocationByNameHandler(activities, log, metricsClient),
-			GetActivityByAdmin:    query.NewGetLocationByAdminHandler(activities, log, metricsClient),
 			GetAvailableIntervals: query.NewGetAvailableIntervalsHandler(chars, activities, log, metricsClient),
 		},
 	}

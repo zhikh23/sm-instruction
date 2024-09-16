@@ -1,9 +1,11 @@
 package sm
 
 import (
-	"github.com/stretchr/testify/require"
-	"sm-instruction/internal/common/commonerrs"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"sm-instruction/internal/common/commonerrs"
 )
 
 func TestNewSkillTypeFromString(t *testing.T) {
@@ -14,11 +16,11 @@ func TestNewSkillTypeFromString(t *testing.T) {
 		}
 
 		cases := []testCase{
-			{"engineering", Engineering},
-			{"researching", Researching},
-			{"social", Social},
-			{"creative", Creative},
-			{"sportive", Sportive},
+			{"Инженерные", Engineering},
+			{"Исследовательские", Researching},
+			{"Социальные", Social},
+			{"Творческие", Creative},
+			{"Спортивные", Sportive},
 		}
 
 		for _, tc := range cases {

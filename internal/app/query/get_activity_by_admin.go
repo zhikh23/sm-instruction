@@ -18,7 +18,7 @@ type getActivityByAdmin struct {
 	activities sm.ActivitiesRepository
 }
 
-func NewGetLocationByAdminHandler(
+func NewGetActivityByAdmin(
 	activities sm.ActivitiesRepository,
 	log *slog.Logger,
 	metricsClient decorator.MetricsClient,

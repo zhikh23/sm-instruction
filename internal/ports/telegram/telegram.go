@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"strconv"
 	"time"
 
 	"github.com/vitaliy-ukiru/fsm-telebot/v2"
@@ -42,6 +43,10 @@ const (
 	bookChooseTimeState     = fsm.State("bookChooseTimeState")
 
 	adminMenuState = fsm.State("adminMenuState")
+
+	awardEnterGroupNameState = fsm.State("awardEnterGroupNameState")
+	awardEnterSkillTypeState = fsm.State("awardEnterSkillTypeState")
+	awardEnterPointsState    = fsm.State("awardEnterPointsState")
 )
 
 const (
@@ -52,7 +57,8 @@ const (
 	toCancelBookButton = "Отменить бронирование точки"
 	toCharacterProfile = "Перейти в профиль"
 
-	toShowBookings = "Показать забронированные точки"
+	toShowBookings   = "Показать забронированные точки"
+	toAwardCharacter = "Начислить участнику баллов"
 )
 
 func (p *Port) participantMenuReplyMarkup(char query.Character) *telebot.ReplyMarkup {
@@ -70,10 +76,11 @@ func (p *Port) participantMenuReplyMarkup(char query.Character) *telebot.ReplyMa
 	}
 }
 
-func (p *Port) adminMenuReplyMarkup() *telebot.ReplyMarkup {
+func (p *Port) locationAdminMenuReplyMarkup() *telebot.ReplyMarkup {
 	opts := make([]string, 0)
 
 	opts = append(opts, toShowBookings)
+	opts = append(opts, toAwardCharacter)
 
 	return &telebot.ReplyMarkup{
 		ReplyKeyboard: makeReplyButtonsForMenu(opts),
@@ -151,6 +158,30 @@ func (p *Port) RegisterFSMManager(m *fsm.Manager, dp fsm.Dispatcher) {
 		fsmopt.On(toShowBookings),
 		fsmopt.OnStates(adminMenuState),
 		fsmopt.Do(p.showBookings),
+	))
+
+	dp.Dispatch(m.New(
+		fsmopt.On(toAwardCharacter),
+		fsmopt.OnStates(adminMenuState),
+		fsmopt.Do(p.awardEnterCharacterGroup),
+	))
+
+	dp.Dispatch(m.New(
+		fsmopt.On(telebot.OnText),
+		fsmopt.OnStates(awardEnterGroupNameState),
+		fsmopt.Do(p.acceptCharacterGroupName),
+	))
+
+	dp.Dispatch(m.New(
+		fsmopt.On(telebot.OnText),
+		fsmopt.OnStates(awardEnterSkillTypeState),
+		fsmopt.Do(p.acceptSkillType),
+	))
+
+	dp.Dispatch(m.New(
+		fsmopt.On(telebot.OnText),
+		fsmopt.OnStates(awardEnterPointsState),
+		fsmopt.Do(p.acceptPoints),
 	))
 }
 
@@ -252,11 +283,20 @@ func (p *Port) participantMenu(c telebot.Context, state fsm.Context) error {
 func (p *Port) adminMenu(c telebot.Context, state fsm.Context) error {
 	ctx := context.Background()
 
-	if err := state.SetState(ctx, adminMenuState); err != nil {
+	act, err := p.app.Queries.GetActivityByAdmin.Handle(ctx, query.GetActivityByAdmin{Username: c.Chat().Username})
+	if err != nil {
 		return err
 	}
 
-	return c.Send("Панель управления администратора. Выбери действие:", p.adminMenuReplyMarkup())
+	if err = state.Update(ctx, "activityUUID", act.UUID); err != nil {
+		return err
+	}
+
+	if err = state.SetState(ctx, adminMenuState); err != nil {
+		return err
+	}
+
+	return c.Send("Панель управления администратора. Выбери действие:", p.locationAdminMenuReplyMarkup())
 }
 
 func (p *Port) book(c telebot.Context, state fsm.Context) error {
@@ -389,7 +429,7 @@ func (p *Port) bookChooseTime(c telebot.Context, state fsm.Context) error {
 func (p *Port) cancelBooking(c telebot.Context, state fsm.Context) error {
 	ctx := context.Background()
 
-	err := p.app.Commands.CancelBooking.Handle(ctx, command.RemoveBooking{Username: c.Chat().Username})
+	err := p.app.Commands.RemoveBooking.Handle(ctx, command.RemoveBooking{Username: c.Chat().Username})
 	if err != nil {
 		return err
 	}
@@ -418,6 +458,7 @@ func (p *Port) profile(c telebot.Context, state fsm.Context) error {
 	msg += fmt.Sprintf("Учебная группа: %s\n", char.GroupName)
 	msg += fmt.Sprintf("Начал в: %s\n", char.StartedAt.Format(timeFormat))
 	msg += fmt.Sprintf("Конец Инструкции: %s\n", char.FinishAt.Format(timeFormat))
+	msg += "\n"
 
 	if char.BookedTime != nil {
 		uuid := char.BookedTime.ActivityUUID
@@ -432,6 +473,12 @@ func (p *Port) profile(c telebot.Context, state fsm.Context) error {
 			char.BookedTime.Finish.Format(timeFormat),
 		)
 		msg += fmt.Sprintf("Местонахождение точки: %s\n", loc.Where)
+		msg += "\n"
+	}
+
+	msg += fmt.Sprintf("Твои навыки:\n")
+	for skill, value := range char.Skills {
+		msg += fmt.Sprintf("- %s - %d\n", skill, value)
 	}
 
 	if err = state.SetState(ctx, participantMenuState); err != nil {
@@ -469,7 +516,164 @@ func (p *Port) showBookings(c telebot.Context, state fsm.Context) error {
 		return err
 	}
 
-	return c.Send(msg, p.adminMenuReplyMarkup(), telebot.ModeHTML)
+	return c.Send(msg, p.locationAdminMenuReplyMarkup(), telebot.ModeHTML)
+}
+
+func (p *Port) awardEnterCharacterGroup(c telebot.Context, state fsm.Context) error {
+	ctx := context.Background()
+
+	if err := state.SetState(ctx, awardEnterGroupNameState); err != nil {
+		return err
+	}
+
+	return c.Send(
+		"Введите учебную группу участников: (в формате СМ1-11Б)",
+		&telebot.ReplyMarkup{RemoveKeyboard: true},
+	)
+}
+
+func (p *Port) acceptCharacterGroupName(c telebot.Context, state fsm.Context) error {
+	ctx := context.Background()
+
+	groupName := c.Message().Text
+
+	char, err := p.app.Queries.GetCharacterByGroup.Handle(ctx, query.GetCharacterByGroup{GroupName: groupName})
+	if errors.Is(err, sm.ErrCharacterNotFound) {
+		return c.Send("Упс, такой группы не существует :( Попробуй ещё раз.")
+	}
+
+	if err := state.Update(ctx, "username", char.Username); err != nil {
+		return err
+	}
+
+	return p.awardEnterCharacterSkill(c, state)
+}
+
+func (p *Port) awardEnterCharacterSkill(c telebot.Context, state fsm.Context) error {
+	ctx := context.Background()
+
+	var activityUUID string
+	if err := state.Data(ctx, "activityUUID", &activityUUID); err != nil {
+		return err
+	}
+
+	act, err := p.app.Queries.GetActivity.Handle(ctx, query.GetActivity{ActivityUUID: activityUUID})
+	if err != nil {
+		return err
+	}
+
+	if err = state.SetState(ctx, awardEnterSkillTypeState); err != nil {
+		return err
+	}
+
+	return c.Send("Выбери тип навыков для начисления очков.",
+		&telebot.ReplyMarkup{
+			ReplyKeyboard: makeReplyButtonsForSkillTypes(act.Skills),
+		},
+	)
+}
+
+func (p *Port) acceptSkillType(c telebot.Context, state fsm.Context) error {
+	ctx := context.Background()
+
+	skillType := c.Message().Text
+
+	if _, err := sm.NewSkillTypeFromString(skillType); err != nil {
+		return c.Send("Выбери один из доступных навыков для начисления очков.")
+	}
+
+	if err := state.Update(ctx, "skillType", skillType); err != nil {
+		return err
+	}
+
+	return p.awardEnterPoints(c, state)
+}
+
+func (p *Port) awardEnterPoints(c telebot.Context, state fsm.Context) error {
+	ctx := context.Background()
+
+	var activityUUID string
+	if err := state.Data(ctx, "activityUUID", &activityUUID); err != nil {
+		return err
+	}
+
+	act, err := p.app.Queries.GetActivity.Handle(ctx, query.GetActivity{ActivityUUID: activityUUID})
+	if err != nil {
+		return err
+	}
+
+	if err = state.SetState(ctx, awardEnterPointsState); err != nil {
+		return err
+	}
+
+	return c.Send("Выбери количество очков для начисления участнику.",
+		&telebot.ReplyMarkup{
+			ReplyKeyboard: makeReplyButtonsForRangeNumbers(1, act.MaxPoints),
+		},
+	)
+}
+
+func (p *Port) acceptPoints(c telebot.Context, state fsm.Context) error {
+	ctx := context.Background()
+
+	pointsStr := c.Message().Text
+	points, err := strconv.Atoi(pointsStr)
+	if err != nil {
+		return c.Send("Пожалуйста, введи корректное число.")
+	}
+
+	if err = state.Update(ctx, "points", points); err != nil {
+		return err
+	}
+
+	return p.awardCharacter(c, state)
+}
+
+func (p *Port) awardCharacter(c telebot.Context, state fsm.Context) error {
+	ctx := context.Background()
+
+	var activityUUID string
+	if err := state.Data(ctx, "activityUUID", &activityUUID); err != nil {
+		return err
+	}
+
+	var username string
+	if err := state.Data(ctx, "username", &username); err != nil {
+		return err
+	}
+
+	var skillType string
+	if err := state.Data(ctx, "skillType", &skillType); err != nil {
+		return err
+	}
+
+	var points int
+	if err := state.Data(ctx, "points", &points); err != nil {
+		return err
+	}
+
+	err := p.app.Commands.AwardCharacter.Handle(ctx, command.AwardCharacter{
+		Username:     username,
+		ActivityUUID: activityUUID,
+		SkillType:    skillType,
+		Points:       points,
+	})
+	if errors.Is(err, sm.ErrMaxPointsExceeded) {
+		return c.Send("Превышено максимальное количество баллов, попробуй ещё раз.")
+	} else if err != nil {
+		return err
+	}
+
+	if err = c.Send(
+		fmt.Sprintf(
+			"Успешно начислено участнику @%s в навыки %q %d б.",
+			username, skillType, points,
+		),
+	); err != nil {
+		return err
+	}
+
+	return p.adminMenu(c, state)
 }
 
 func makeReplyButtonsApprove() [][]telebot.ReplyButton {
@@ -510,6 +714,26 @@ func makeReplyButtonsFromTimes(times []time.Time) [][]telebot.ReplyButton {
 	}
 
 	return composeButtons(buttons, 3)
+}
+
+func makeReplyButtonsForSkillTypes(skills []string) [][]telebot.ReplyButton {
+	buttons := make([]telebot.ReplyButton, len(skills))
+
+	for i, skill := range skills {
+		buttons[i] = telebot.ReplyButton{Text: skill}
+	}
+
+	return composeButtons(buttons, 2)
+}
+
+func makeReplyButtonsForRangeNumbers(start, end int) [][]telebot.ReplyButton {
+	buttons := make([]telebot.ReplyButton, end-start+1)
+
+	for i := start; i <= end; i++ {
+		buttons[i-start] = telebot.ReplyButton{Text: strconv.Itoa(i)}
+	}
+
+	return composeButtons(buttons, 4)
 }
 
 func closestTimeFromString(str string) (time.Time, error) {
