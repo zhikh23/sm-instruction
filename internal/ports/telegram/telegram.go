@@ -59,9 +59,9 @@ func (p *Port) participantMenuReplyMarkup(char query.Character) *telebot.ReplyMa
 	opts := make([]string, 0)
 
 	opts = append(opts, toCharacterProfile)
-	if char.BookedLocationUUID == nil {
+	if char.BookedTime == nil {
 		opts = append(opts, toBookButton)
-	} else {
+	} else if char.BookedTime.CanBeRemoved {
 		opts = append(opts, toCancelBookButton)
 	}
 
@@ -91,6 +91,12 @@ func (p *Port) RegisterFSMManager(m *fsm.Manager, dp fsm.Dispatcher) {
 		fsmopt.On("/start"),
 		fsmopt.OnStates(fsm.AnyState),
 		fsmopt.Do(p.start),
+	))
+
+	dp.Dispatch(m.New(
+		fsmopt.On("/admin"),
+		fsmopt.OnStates(fsm.AnyState),
+		fsmopt.Do(p.adminMenu),
 	))
 
 	dp.Dispatch(m.New(
@@ -146,12 +152,6 @@ func (p *Port) RegisterFSMManager(m *fsm.Manager, dp fsm.Dispatcher) {
 		fsmopt.OnStates(adminMenuState),
 		fsmopt.Do(p.showBookings),
 	))
-
-	dp.Dispatch(m.New(
-		fsmopt.On("/admin"),
-		fsmopt.OnStates(fsm.AnyState),
-		fsmopt.Do(p.adminMenu),
-	))
 }
 
 func (p *Port) cancel(c telebot.Context, state fsm.Context) error {
@@ -193,6 +193,10 @@ func (p *Port) start(c telebot.Context, state fsm.Context) error {
 		return err
 	}
 
+	if err = state.SetState(ctx, participantMenuState); err != nil {
+		return err
+	}
+
 	return c.Send("Что нужно сделать?", p.participantMenuReplyMarkup(char))
 }
 
@@ -217,8 +221,7 @@ func (p *Port) startReadGroupName(c telebot.Context, state fsm.Context) error {
 		return err
 	}
 
-	err = state.SetState(ctx, participantMenuState)
-	if err != nil {
+	if err = state.SetState(ctx, participantMenuState); err != nil {
 		return err
 	}
 
@@ -232,8 +235,7 @@ func (p *Port) startReadGroupName(c telebot.Context, state fsm.Context) error {
 func (p *Port) participantMenu(c telebot.Context, state fsm.Context) error {
 	ctx := context.Background()
 
-	err := state.SetState(ctx, participantMenuState)
-	if err != nil {
+	if err := state.SetState(ctx, participantMenuState); err != nil {
 		return err
 	}
 
@@ -250,8 +252,7 @@ func (p *Port) participantMenu(c telebot.Context, state fsm.Context) error {
 func (p *Port) adminMenu(c telebot.Context, state fsm.Context) error {
 	ctx := context.Background()
 
-	err := state.SetState(ctx, adminMenuState)
-	if err != nil {
+	if err := state.SetState(ctx, adminMenuState); err != nil {
 		return err
 	}
 
@@ -261,22 +262,12 @@ func (p *Port) adminMenu(c telebot.Context, state fsm.Context) error {
 func (p *Port) book(c telebot.Context, state fsm.Context) error {
 	ctx := context.Background()
 
-	char, err := p.app.Queries.GetCharacter.Handle(ctx, query.GetCharacter{Username: c.Chat().Username})
-	if err != nil {
-		return err
-	}
-
-	if char.BookedLocationUUID != nil {
-		return c.Send("")
-	}
-
 	locs, err := p.app.Queries.GetAllLocations.Handle(ctx, query.GetAllLocations{})
 	if err != nil {
 		return err
 	}
 
-	err = state.SetState(ctx, bookChooseLocationState)
-	if err != nil {
+	if err = state.SetState(ctx, bookChooseLocationState); err != nil {
 		return err
 	}
 
@@ -291,19 +282,17 @@ func (p *Port) bookLocationDescribe(c telebot.Context, state fsm.Context) error 
 	locationName := c.Message().Text
 
 	loc, err := p.app.Queries.GetLocationByName.Handle(ctx, query.GetLocationByName{Name: locationName})
-	if errors.Is(err, sm.ErrLocationNotFound) {
+	if errors.Is(err, sm.ErrActivityNotFound) || errors.Is(err, sm.ErrActivityHasNotLocation) {
 		return c.Send("Такой точки не существует :( Выбери, пожалуйста, точку из списка.")
 	} else if err != nil {
 		return err
 	}
 
-	err = state.Update(ctx, "locationUUID", loc.UUID)
-	if err != nil {
+	if err = state.Update(ctx, "locationUUID", loc.UUID); err != nil {
 		return err
 	}
 
-	err = state.SetState(ctx, bookApproveLocation)
-	if err != nil {
+	if err = state.SetState(ctx, bookApproveLocation); err != nil {
 		return err
 	}
 
@@ -326,7 +315,7 @@ func (p *Port) bookChooseLocationTime(c telebot.Context, state fsm.Context) erro
 
 	available, err := p.app.Queries.GetAvailableIntervals.Handle(ctx, query.GetAvailableIntervals{
 		Username:     c.Chat().Username,
-		LocationUUID: locationUUID,
+		ActivityUUID: locationUUID,
 	})
 	if err != nil {
 		return err
@@ -336,8 +325,7 @@ func (p *Port) bookChooseLocationTime(c telebot.Context, state fsm.Context) erro
 		return c.Send("Ой, у точки не осталось времени, которое можно забронировать :( Попробуй выбрать другую точку.")
 	}
 
-	err = state.SetState(ctx, bookChooseTimeState)
-	if err != nil {
+	if err = state.SetState(ctx, bookChooseTimeState); err != nil {
 		return err
 	}
 
@@ -374,12 +362,10 @@ func (p *Port) bookChooseTime(c telebot.Context, state fsm.Context) error {
 		return c.Send("Пожалуйста, выбери корректное время бронирования.")
 	case errors.Is(err, sm.ErrLocationAlreadyBooked):
 		return c.Send("К сожалению, данное время уже забронировано. Пожалуйста, выбери другое время.")
-	case errors.Is(err, sm.ErrCharacterBookingIsTooLate):
+	case errors.Is(err, sm.ErrCharacterBookingAfterFinish):
 		return c.Send("Невозможно забронировать точку позже, чем 4 часа после начала Инструкции. Пожалуйста, выбери другое время.")
 	case errors.Is(err, sm.ErrCharacterBookingIsTooClose):
 		return c.Send("Невозможно забронировать точку позже чем за 5 минут до старта. Пожалуйста, выбери другое время.")
-	case errors.Is(err, sm.ErrCharacterAlreadyFinished):
-		return c.Send("Невозможно забронировать точку, т.к. ты уже завершил Инструкцию.")
 	case err != nil:
 		return err
 	}
@@ -389,8 +375,7 @@ func (p *Port) bookChooseTime(c telebot.Context, state fsm.Context) error {
 		return err
 	}
 
-	err = state.SetState(ctx, participantMenuState)
-	if err != nil {
+	if err = state.SetState(ctx, participantMenuState); err != nil {
 		return err
 	}
 
@@ -404,7 +389,7 @@ func (p *Port) bookChooseTime(c telebot.Context, state fsm.Context) error {
 func (p *Port) cancelBooking(c telebot.Context, state fsm.Context) error {
 	ctx := context.Background()
 
-	err := p.app.Commands.CancelBooking.Handle(ctx, command.CancelBooking{Username: c.Chat().Username})
+	err := p.app.Commands.CancelBooking.Handle(ctx, command.RemoveBooking{Username: c.Chat().Username})
 	if err != nil {
 		return err
 	}
@@ -414,8 +399,7 @@ func (p *Port) cancelBooking(c telebot.Context, state fsm.Context) error {
 		return err
 	}
 
-	err = state.SetState(ctx, participantMenuState)
-	if err != nil {
+	if err = state.SetState(ctx, participantMenuState); err != nil {
 		return err
 	}
 
@@ -435,18 +419,22 @@ func (p *Port) profile(c telebot.Context, state fsm.Context) error {
 	msg += fmt.Sprintf("Начал в: %s\n", char.StartedAt.Format(timeFormat))
 	msg += fmt.Sprintf("Конец Инструкции: %s\n", char.FinishAt.Format(timeFormat))
 
-	if char.BookedLocationUUID != nil {
-		uuid := *char.BookedLocationUUID
+	if char.BookedTime != nil {
+		uuid := char.BookedTime.ActivityUUID
 		loc, err := p.app.Queries.GetLocation.Handle(ctx, query.GetLocation{UUID: uuid})
 		if err != nil {
 			return err
 		}
-		msg += fmt.Sprintf("Забронировано: '%s' до %s\n", loc.Name, char.BookedLocationTo.Format(timeFormat))
+		msg += fmt.Sprintf(
+			"Забронировано: %q на промежуток %s - %s\n",
+			loc.Name,
+			char.BookedTime.Start.Format(timeFormat),
+			char.BookedTime.Finish.Format(timeFormat),
+		)
 		msg += fmt.Sprintf("Местонахождение точки: %s\n", loc.Where)
 	}
 
-	err = state.SetState(ctx, participantMenuState)
-	if err != nil {
+	if err = state.SetState(ctx, participantMenuState); err != nil {
 		return err
 	}
 
@@ -456,21 +444,28 @@ func (p *Port) profile(c telebot.Context, state fsm.Context) error {
 func (p *Port) showBookings(c telebot.Context, state fsm.Context) error {
 	ctx := context.Background()
 
-	loc, err := p.app.Queries.GetLocationByAdmin.Handle(ctx, query.GetLocationByAdmin{Username: c.Chat().Username})
+	act, err := p.app.Queries.GetActivityByAdmin.Handle(ctx, query.GetActivityByAdmin{Username: c.Chat().Username})
+	if err != nil {
+		return err
+	}
+
+	loc, err := p.app.Queries.GetLocation.Handle(ctx, query.GetLocation{UUID: act.UUID})
 	if err != nil {
 		return err
 	}
 
 	msg := fmt.Sprintf("Точка '%s'\n", loc.Name)
-	if len(loc.Booked) == 0 {
+	if len(loc.BookedTimes) == 0 {
 		msg += "Не имеет бронирований."
 	}
-	for _, tim := range loc.Booked {
-		msg += fmt.Sprintf("<code>%s</code> - @%s\n", tim.Time.Format(timeFormat), tim.ByUsername)
+	for _, t := range loc.BookedTimes {
+		msg += fmt.Sprintf(
+			"<code>%s - %s</code> - @%s\n",
+			t.Start.Format(timeFormat), t.Finish.Format(timeFormat), t.Username,
+		)
 	}
 
-	err = state.SetState(ctx, adminMenuState)
-	if err != nil {
+	if err = state.SetState(ctx, adminMenuState); err != nil {
 		return err
 	}
 

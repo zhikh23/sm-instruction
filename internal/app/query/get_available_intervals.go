@@ -11,19 +11,19 @@ import (
 
 type GetAvailableIntervals struct {
 	Username     string
-	LocationUUID string
+	ActivityUUID string
 }
 
 type GetAvailableIntervalsHandler decorator.QueryHandler[GetAvailableIntervals, []time.Time]
 
 type getAvailableIntervalsHandler struct {
-	chars sm.CharactersRepository
-	locs  sm.LocationsRepository
+	chars      sm.CharactersRepository
+	activities sm.ActivitiesRepository
 }
 
 func NewGetAvailableIntervalsHandler(
 	chars sm.CharactersRepository,
-	locs sm.LocationsRepository,
+	activities sm.ActivitiesRepository,
 	log *slog.Logger,
 	metricsClient decorator.MetricsClient,
 ) GetAvailableIntervalsHandler {
@@ -31,12 +31,12 @@ func NewGetAvailableIntervalsHandler(
 		panic("characters repository is nil")
 	}
 
-	if locs == nil {
-		panic("locations repository is nil")
+	if activities == nil {
+		panic("activities repository is nil")
 	}
 
 	return decorator.ApplyQueryDecorators[GetAvailableIntervals, []time.Time](
-		&getAvailableIntervalsHandler{chars: chars, locs: locs},
+		&getAvailableIntervalsHandler{chars, activities},
 		log,
 		metricsClient,
 	)
@@ -53,7 +53,12 @@ func (h *getAvailableIntervalsHandler) Handle(ctx context.Context, query GetAvai
 		return nil, err
 	}
 
-	loc, err := h.locs.Location(ctx, query.LocationUUID)
+	act, err := h.activities.Activity(ctx, query.ActivityUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	loc, err := act.LocationOrErr()
 	if err != nil {
 		return nil, err
 	}

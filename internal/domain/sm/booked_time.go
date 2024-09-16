@@ -9,40 +9,56 @@ import (
 const BookInterval = 30 * time.Minute
 
 type BookedTime struct {
-	Time       time.Time
-	ByUsername string
+	Username     string
+	ActivityUUID string
+	Start        time.Time
+	Finish       time.Time
+	CanBeRemoved bool
 }
 
 func NewBookedTime(
-	t time.Time,
-	byUsername string,
+	username string,
+	activityUUID string,
+	start time.Time,
+	canBeRemoved bool,
 ) (BookedTime, error) {
-	if t.IsZero() {
-		return BookedTime{}, commonerrs.NewInvalidInputError("expected non-zero time")
-	}
-
-	if !t.Round(BookInterval).Equal(t) {
-		return BookedTime{}, commonerrs.NewInvalidInputErrorf(
-			"invalid time %s; expected multiply of %s",
-			t.String(), BookInterval.String(),
-		)
-	}
-
-	if byUsername == "" {
+	if username == "" {
 		return BookedTime{}, commonerrs.NewInvalidInputError("expected not empty username")
 	}
 
+	if activityUUID == "" {
+		return BookedTime{}, commonerrs.NewInvalidInputError("expected not empty activity UUID")
+	}
+
+	if start.IsZero() {
+		return BookedTime{}, commonerrs.NewInvalidInputError("expected non-zero time")
+	}
+
+	if !start.Round(BookInterval).Equal(start) {
+		return BookedTime{}, commonerrs.NewInvalidInputErrorf(
+			"invalid time %s; expected multiply of %s",
+			start.String(), BookInterval.String(),
+		)
+	}
+
+	finish := start.Add(BookInterval)
+
 	return BookedTime{
-		Time:       t,
-		ByUsername: byUsername,
+		Username:     username,
+		ActivityUUID: activityUUID,
+		Start:        start,
+		Finish:       finish,
+		CanBeRemoved: canBeRemoved,
 	}, nil
 }
 
 func MustNewBookedTime(
-	t time.Time,
-	byUsername string,
+	username string,
+	activityUUID string,
+	start time.Time,
+	canBeRemoved bool,
 ) BookedTime {
-	b, err := NewBookedTime(t, byUsername)
+	b, err := NewBookedTime(username, activityUUID, start, canBeRemoved)
 	if err != nil {
 		panic(err)
 	}
@@ -54,5 +70,5 @@ func (b BookedTime) IsZero() bool {
 }
 
 func (b BookedTime) TimeString() string {
-	return b.Time.Format("15:04")
+	return b.Start.Format("15:04")
 }

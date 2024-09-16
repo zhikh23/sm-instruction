@@ -11,30 +11,40 @@ type User struct {
 	Role     string
 }
 
-type Character struct {
-	Username  string
-	GroupName string
-	Skills    map[string]int
-	StartedAt *time.Time
-	FinishAt  *time.Time
-
-	BookedLocationUUID *string
-	BookedLocationTo   *time.Time
+type BookedTime struct {
+	Username     string
+	ActivityUUID string
+	Start        time.Time
+	Finish       time.Time
+	CanBeRemoved bool
 }
 
-type BookedInterval struct {
-	Time       time.Time
-	ByUsername string
+type Character struct {
+	Username   string
+	GroupName  string
+	Skills     map[string]int
+	StartedAt  *time.Time
+	FinishAt   *time.Time
+	BookedTime *BookedTime
+}
+
+type Activity struct {
+	UUID      string
+	Name      string
+	Admins    []User
+	Skills    []string
+	MaxPoints int
 }
 
 type Location struct {
-	UUID            string
-	Name            string
-	Description     string
-	Where           string
-	Booked          []BookedInterval
-	Administrators  []User
-	AvailableSkills []string
+	UUID        string
+	Name        string
+	Admins      []User
+	Skills      []string
+	MaxPoints   int
+	Description string
+	Where       string
+	BookedTimes []BookedTime
 }
 
 func convertSkillTypeToApp(s sm.SkillType) string {
@@ -57,16 +67,40 @@ func convertSkillsToApp(m map[sm.SkillType]int) map[string]int {
 	return res
 }
 
+func convertBookedTimeToApp(bt sm.BookedTime) BookedTime {
+	return BookedTime{
+		Username:     bt.Username,
+		ActivityUUID: bt.ActivityUUID,
+		Start:        bt.Start,
+		Finish:       bt.Finish,
+		CanBeRemoved: bt.CanBeRemoved,
+	}
+}
+
+func convertBookedTimeToAppOrNil(bt *sm.BookedTime) *BookedTime {
+	if bt == nil {
+		return nil
+	}
+	res := convertBookedTimeToApp(*bt)
+	return &res
+}
+
+func convertBookedTimesToApp(bs []sm.BookedTime) []BookedTime {
+	res := make([]BookedTime, len(bs))
+	for i, b := range bs {
+		res[i] = convertBookedTimeToApp(b)
+	}
+	return res
+}
+
 func convertCharacterToApp(c *sm.Character) Character {
 	return Character{
-		Username:  c.Username,
-		GroupName: c.GroupName,
-		Skills:    convertSkillsToApp(c.Skills),
-		StartedAt: c.StartedAt,
-		FinishAt:  c.FinishAt,
-
-		BookedLocationUUID: c.BookedLocationUUID,
-		BookedLocationTo:   c.BookedLocationTo,
+		Username:   c.Username,
+		GroupName:  c.GroupName,
+		Skills:     convertSkillsToApp(c.Skills),
+		StartedAt:  c.StartedAt,
+		FinishAt:   c.FinishAt,
+		BookedTime: convertBookedTimeToAppOrNil(c.BookedTime),
 	}
 }
 
@@ -77,21 +111,6 @@ func convertUserToApp(u sm.User) User {
 	}
 }
 
-func convertBookedTimeToApp(i sm.BookedTime) BookedInterval {
-	return BookedInterval{
-		Time:       i.Time,
-		ByUsername: i.ByUsername,
-	}
-}
-
-func convertBookedTimesToApp(is []sm.BookedTime) []BookedInterval {
-	res := make([]BookedInterval, len(is))
-	for i, in := range is {
-		res[i] = convertBookedTimeToApp(in)
-	}
-	return res
-}
-
 func convertUsersToApp(us []sm.User) []User {
 	res := make([]User, len(us))
 	for i, u := range us {
@@ -100,22 +119,44 @@ func convertUsersToApp(us []sm.User) []User {
 	return res
 }
 
-func convertLocationToApp(l *sm.Location) Location {
-	return Location{
-		UUID:            l.UUID,
-		Name:            l.Name,
-		Description:     l.Description,
-		Where:           l.Where,
-		Booked:          convertBookedTimesToApp(l.Booked),
-		Administrators:  convertUsersToApp(l.Administrators),
-		AvailableSkills: convertSkillTypesToApp(l.AvailableSkills),
+func convertActivityToApp(a *sm.Activity) Activity {
+	return Activity{
+		UUID:      a.UUID,
+		Name:      a.Name,
+		Admins:    convertUsersToApp(a.Admins),
+		Skills:    convertSkillTypesToApp(a.Skills),
+		MaxPoints: a.MaxPoints,
 	}
 }
 
-func convertLocationsToApp(ls []*sm.Location) []Location {
-	res := make([]Location, len(ls))
-	for i, l := range ls {
-		res[i] = convertLocationToApp(l)
+func convertActivitiesToApp(as []*sm.Activity) []Activity {
+	res := make([]Activity, len(as))
+	for i, a := range as {
+		res[i] = convertActivityToApp(a)
+	}
+	return res
+}
+
+func convertLocationToApp(a *sm.Activity) Location {
+	if a.Location == nil {
+		panic("activity has not location")
+	}
+	return Location{
+		UUID:        a.UUID,
+		Name:        a.Name,
+		Admins:      convertUsersToApp(a.Admins),
+		Skills:      convertSkillTypesToApp(a.Skills),
+		MaxPoints:   a.MaxPoints,
+		Description: a.Location.Description,
+		Where:       a.Location.Where,
+		BookedTimes: convertBookedTimesToApp(a.Location.BookedTimes),
+	}
+}
+
+func convertLocationsToApp(as []*sm.Activity) []Location {
+	res := make([]Location, len(as))
+	for i, a := range as {
+		res[i] = convertLocationToApp(a)
 	}
 	return res
 }

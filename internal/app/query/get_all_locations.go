@@ -14,30 +14,30 @@ type GetAllLocations struct {
 type GetAllLocationsHandler decorator.QueryHandler[GetAllLocations, []Location]
 
 type getAllLocationsHandler struct {
-	locs sm.LocationsRepository
+	activities sm.ActivitiesRepository
 }
 
 func NewGetAllLocationsHandler(
-	locs sm.LocationsRepository,
+	activities sm.ActivitiesRepository,
 	log *slog.Logger,
 	metricsClient decorator.MetricsClient,
 ) GetAllLocationsHandler {
-	if locs == nil {
-		panic("locations repository is nil")
+	if activities == nil {
+		panic("activities repository is nil")
 	}
 
 	return decorator.ApplyQueryDecorators[GetAllLocations, []Location](
-		&getAllLocationsHandler{locs: locs},
+		&getAllLocationsHandler{activities},
 		log,
 		metricsClient,
 	)
 }
 
-func (h *getAllLocationsHandler) Handle(ctx context.Context, query GetAllLocations) ([]Location, error) {
-	locs, err := h.locs.Locations(ctx)
+func (h *getAllLocationsHandler) Handle(ctx context.Context, _ GetAllLocations) ([]Location, error) {
+	acts, err := h.activities.ActivitiesWithLocations(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return convertLocationsToApp(locs), nil
+	return convertLocationsToApp(acts), nil
 }

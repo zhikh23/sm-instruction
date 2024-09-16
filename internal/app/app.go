@@ -14,7 +14,7 @@ type Commands struct {
 	StartInstruction command.StartInstructionHandler
 
 	BookLocation  command.BookLocationHandler
-	CancelBooking command.CancelBookingHandler
+	CancelBooking command.RemoveBookingHandler
 }
 
 type Queries struct {
@@ -26,6 +26,6 @@ type Queries struct {
 	GetLocation           query.GetLocationHandler
 	GetAllLocations       query.GetAllLocationsHandler
 	GetLocationByName     query.GetLocationByNameHandler
-	GetLocationByAdmin    query.GetLocationByAdminHandler
+	GetActivityByAdmin    query.GetActivityByAdminHandler
 	GetAvailableIntervals query.GetAvailableIntervalsHandler
 }

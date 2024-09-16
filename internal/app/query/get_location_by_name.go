@@ -3,6 +3,7 @@ package query
 import (
 	"context"
 	"log/slog"
+
 	"sm-instruction/internal/common/decorator"
 	"sm-instruction/internal/domain/sm"
 )
@@ -14,27 +15,27 @@ type GetLocationByName struct {
 type GetLocationByNameHandler decorator.QueryHandler[GetLocationByName, Location]
 
 type getLocationByNameHandler struct {
-	locs sm.LocationsRepository
+	activities sm.ActivitiesRepository
 }
 
 func NewGetLocationByNameHandler(
-	locs sm.LocationsRepository,
+	activities sm.ActivitiesRepository,
 	log *slog.Logger,
 	metricsClient decorator.MetricsClient,
 ) GetLocationByNameHandler {
-	if locs == nil {
-		panic("locations repository is nil")
+	if activities == nil {
+		panic("activities repository is nil")
 	}
 
 	return decorator.ApplyQueryDecorators[GetLocationByName, Location](
-		&getLocationByNameHandler{locs: locs},
+		&getLocationByNameHandler{activities},
 		log,
 		metricsClient,
 	)
 }
 
 func (h *getLocationByNameHandler) Handle(ctx context.Context, query GetLocationByName) (Location, error) {
-	loc, err := h.locs.LocationByName(ctx, query.Name)
+	loc, err := h.activities.ActivityByName(ctx, query.Name)
 	if err != nil {
 		return Location{}, err
 	}

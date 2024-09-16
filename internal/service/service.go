@@ -19,9 +19,9 @@ func NewMockedApplication() *app.Application {
 
 	users := mocks.NewMockUsersRepository()
 	chars := mocks.NewMockCharactersRepository()
-	locs := mocks.NewMockLocationsRepository()
+	activities := mocks.NewMockActivitiesRepository()
 
-	return newApplication(log, metricsClient, users, chars, locs)
+	return newApplication(log, metricsClient, users, chars, activities)
 }
 
 func newApplication(
@@ -29,14 +29,14 @@ func newApplication(
 	metricsClient decorator.MetricsClient,
 	users sm.UsersRepository,
 	chars sm.CharactersRepository,
-	locs sm.LocationsRepository,
+	activities sm.ActivitiesRepository,
 ) *app.Application {
 	return &app.Application{
 		Commands: app.Commands{
 			StartInstruction: command.NewStartInstructionHandler(users, chars, log, metricsClient),
 
-			BookLocation:  command.NewBookLocationHandler(chars, locs, log, metricsClient),
-			CancelBooking: command.NewCancelBookingHandler(chars, locs, log, metricsClient),
+			BookLocation:  command.NewBookLocationHandler(chars, activities, log, metricsClient),
+			CancelBooking: command.NewRemoveBookingHandler(chars, activities, log, metricsClient),
 		},
 		Queries: app.Queries{
 			UserIsAdministrator: query.NewUserIsAdministratorHandler(users, log, metricsClient),
@@ -44,11 +44,11 @@ func newApplication(
 			CharacterIsStarted: query.NewCharacterIsStarted(chars, log, metricsClient),
 			GetCharacter:       query.NewGetCharacterHandler(chars, log, metricsClient),
 
-			GetLocation:           query.NewGetLocationHandler(locs, log, metricsClient),
-			GetAllLocations:       query.NewGetAllLocationsHandler(locs, log, metricsClient),
-			GetLocationByName:     query.NewGetLocationByNameHandler(locs, log, metricsClient),
-			GetLocationByAdmin:    query.NewGetLocationByAdminHandler(locs, log, metricsClient),
-			GetAvailableIntervals: query.NewGetAvailableIntervalsHandler(chars, locs, log, metricsClient),
+			GetLocation:           query.NewGetLocationHandler(activities, log, metricsClient),
+			GetAllLocations:       query.NewGetAllLocationsHandler(activities, log, metricsClient),
+			GetLocationByName:     query.NewGetLocationByNameHandler(activities, log, metricsClient),
+			GetActivityByAdmin:    query.NewGetLocationByAdminHandler(activities, log, metricsClient),
+			GetAvailableIntervals: query.NewGetAvailableIntervalsHandler(chars, activities, log, metricsClient),
 		},
 	}
 }

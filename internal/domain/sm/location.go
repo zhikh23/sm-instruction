@@ -2,73 +2,41 @@ package sm
 
 import (
 	"errors"
-	"slices"
 	"time"
 
 	"sm-instruction/internal/common/commonerrs"
 )
 
-const AvailableSkillsNumber = 2
-
 type Location struct {
-	UUID            string
-	Name            string
-	Description     string
-	Where           string
-	Booked          []BookedTime
-	Administrators  []User
-	AvailableSkills []SkillType
+	Description string
+	Where       string
+	BookedTimes []BookedTime
 }
 
 func NewLocation(
-	uuid string,
-	name string,
 	description string,
 	where string,
-	availableSkills []SkillType,
 ) (*Location, error) {
-	if uuid == "" {
-		return nil, commonerrs.NewInvalidInputError("expected not empty location uuid")
-	}
-
 	if description == "" {
-		return nil, commonerrs.NewInvalidInputError("expected not empty location description")
+		return nil, commonerrs.NewInvalidInputError("expected not empty Location description")
 	}
 
 	if where == "" {
-		return nil, commonerrs.NewInvalidInputError("expected not empty location where")
-	}
-
-	if name == "" {
-		return nil, commonerrs.NewInvalidInputError("expected not empty location name")
-	}
-
-	if len(availableSkills) != AvailableSkillsNumber {
-		return nil, commonerrs.NewInvalidInputErrorf(
-			"invalid number of available skills: %d; expected %d",
-			len(availableSkills), AvailableSkillsNumber,
-		)
+		return nil, commonerrs.NewInvalidInputError("expected not empty Location where")
 	}
 
 	return &Location{
-		UUID:            uuid,
-		Name:            name,
-		Description:     description,
-		Where:           where,
-		Booked:          make([]BookedTime, 0),
-		Administrators:  make([]User, 0),
-		AvailableSkills: availableSkills,
+		Description: description,
+		Where:       where,
+		BookedTimes: make([]BookedTime, 0),
 	}, nil
 }
 
 func MustNewLocation(
-	uuid string,
-	name string,
 	description string,
 	where string,
-	availableSkills []SkillType,
 ) *Location {
-	l, err := NewLocation(uuid, name, description, where, availableSkills)
+	l, err := NewLocation(description, where)
 	if err != nil {
 		panic(err)
 	}
@@ -76,77 +44,48 @@ func MustNewLocation(
 }
 
 func UnmarshallLocationFromDB(
-	uuid string,
+	activityUUID string,
 	name string,
 	description string,
 	where string,
-	availableSkills []string,
-	booked []BookedTime,
-	administrators []User,
+	bookedTimes []BookedTime,
 ) (*Location, error) {
-	if uuid == "" {
-		return nil, commonerrs.NewInvalidInputError("expected not empty location uuid")
+	if activityUUID == "" {
+		return nil, commonerrs.NewInvalidInputError("expected not empty Location uuid")
 	}
 
 	if name == "" {
-		return nil, commonerrs.NewInvalidInputError("expected not empty location name")
+		return nil, commonerrs.NewInvalidInputError("expected not empty Location name")
 	}
 
 	if description == "" {
-		return nil, commonerrs.NewInvalidInputError("expected not empty location description")
+		return nil, commonerrs.NewInvalidInputError("expected not empty Location description")
 	}
 
 	if where == "" {
-		return nil, commonerrs.NewInvalidInputError("expected not empty location where")
+		return nil, commonerrs.NewInvalidInputError("expected not empty Location where")
 	}
 
-	if len(availableSkills) == 0 {
-		return nil, commonerrs.NewInvalidInputError("expected not empty location available skills")
+	if bookedTimes == nil {
+		bookedTimes = make([]BookedTime, 0)
 	}
 
-	skills := make([]SkillType, len(availableSkills))
-	for i, str := range availableSkills {
-		skill, err := NewSkillTypeFromString(str)
-		if err != nil {
-			return nil, err
-		}
-		skills[i] = skill
-	}
-
-	if booked == nil {
-		booked = make([]BookedTime, 0)
-	}
-
-	for _, interval := range booked {
+	for _, interval := range bookedTimes {
 		if interval.IsZero() {
 			return nil, commonerrs.NewInvalidInputError("expected not empty booking interval")
 		}
 	}
 
-	if administrators == nil {
-		administrators = make([]User, 0)
-	}
-
-	for _, user := range administrators {
-		if user.IsZero() {
-			return nil, commonerrs.NewInvalidInputError("expected not empty administrators")
-		}
-	}
-
 	return &Location{
-		UUID:            uuid,
-		Name:            name,
-		Description:     description,
-		Where:           where,
-		Booked:          booked,
-		Administrators:  administrators,
-		AvailableSkills: skills,
+		Description: description,
+		Where:       where,
+		BookedTimes: bookedTimes,
 	}, nil
 }
 
 func (l *Location) IsBooked(t time.Time) bool {
-	for _, bt := range l.Booked {
-		if bt.Time.Equal(t) {
+	for _, bt := range l.BookedTimes {
+		if bt.Start.Equal(t) {
 			return true
 		}
 	}
@@ -162,41 +101,26 @@ func (l *Location) CanBook(t time.Time) error {
 	return nil
 }
 
-func (l *Location) AddBooking(t time.Time, username string) error {
-	if t.IsZero() {
-		return commonerrs.NewInvalidInputError("expected not empty booking interval")
-	}
-
-	if err := l.CanBook(t); err != nil {
+func (l *Location) AddBooking(bookedTime BookedTime) error {
+	if err := l.CanBook(bookedTime.Start); err != nil {
 		return err
 	}
 
-	bookTime, err := NewBookedTime(t, username)
-	if err != nil {
-		return err
-	}
-
-	l.Booked = append(l.Booked, bookTime)
+	l.BookedTimes = append(l.BookedTimes, bookedTime)
 
 	return nil
 }
 
-var ErrLocationCannotIncSkill = errors.New("location cannot increment skill")
+var ErrLocationHasNotBooked = errors.New("interval is not booked")
 
-func (l *Location) Complete(char *Character, incSkill SkillType, score int) error {
-	if err := char.RemoveBooking(l); err != nil {
-		return err
+func (l *Location) RemoveBooking(bookedTime BookedTime) error {
+	for i, bt := range l.BookedTimes {
+		if bt == bookedTime {
+			l.BookedTimes = append(l.BookedTimes[:i], l.BookedTimes[i+1:]...)
+			return nil
+		}
 	}
-
-	if !slices.Contains(l.AvailableSkills, incSkill) {
-		return ErrLocationCannotIncSkill
-	}
-
-	if err := char.IncSkill(incSkill, score); err != nil {
-		return err
-	}
-
-	return nil
+	return ErrLocationHasNotBooked
 }
 
 func (l *Location) AvailableTimes(to time.Time) []time.Time {
@@ -214,27 +138,4 @@ func (l *Location) AvailableTimes(to time.Time) []time.Time {
 	}
 
 	return times
-}
-
-func (l *Location) HasAdministrator(username string) bool {
-	for _, a := range l.Administrators {
-		if a.Username == username {
-			return true
-		}
-	}
-	return false
-}
-
-var ErrAdministratorAlreadyExists = errors.New("administrator already exists")
-
-func (l *Location) AddAdministrator(user User) error {
-	for _, a := range l.Administrators {
-		if a.Username == user.Username {
-			return ErrAdministratorAlreadyExists
-		}
-	}
-
-	l.Administrators = append(l.Administrators, user)
-
-	return nil
 }

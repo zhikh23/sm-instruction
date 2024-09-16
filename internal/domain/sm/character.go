@@ -9,19 +9,16 @@ import (
 	"sm-instruction/internal/common/commonerrs"
 )
 
-const MaxScore = 5
 const MaxDurationInstruction = 4 * time.Hour
 const MinimalDurationBeforeBooking = 5 * time.Minute
 
 type Character struct {
-	Username  string
-	GroupName string
-	Skills    map[SkillType]int
-	StartedAt *time.Time
-	FinishAt  *time.Time
-
-	BookedLocationTo   *time.Time
-	BookedLocationUUID *string
+	Username   string
+	GroupName  string
+	Skills     map[SkillType]int
+	StartedAt  *time.Time
+	FinishAt   *time.Time
+	BookedTime *BookedTime
 }
 
 func NewCharacter(
@@ -46,14 +43,12 @@ func NewCharacter(
 	}
 
 	return &Character{
-		Username:  username,
-		GroupName: groupName,
-		Skills:    skills,
-		StartedAt: nil,
-		FinishAt:  nil,
-
-		BookedLocationTo:   nil,
-		BookedLocationUUID: nil,
+		Username:   username,
+		GroupName:  groupName,
+		Skills:     skills,
+		StartedAt:  nil,
+		FinishAt:   nil,
+		BookedTime: nil,
 	}, nil
 }
 
@@ -78,8 +73,7 @@ func UnmarshallCharacterFromDB(
 	sportiveSkill int,
 	startedAt *time.Time,
 	finishAt *time.Time,
-	bookedLocationTo *time.Time,
-	bookedLocationUUID *string,
+	bookedTime *BookedTime,
 ) (*Character, error) {
 	if username == "" {
 		return nil, commonerrs.NewInvalidInputError("expected not empty username")
@@ -101,14 +95,12 @@ func UnmarshallCharacterFromDB(
 	skills[Creative] = creativeSkill
 
 	return &Character{
-		Username:  username,
-		GroupName: groupName,
-		Skills:    skills,
-		StartedAt: startedAt,
-		FinishAt:  finishAt,
-
-		BookedLocationTo:   bookedLocationTo,
-		BookedLocationUUID: bookedLocationUUID,
+		Username:   username,
+		GroupName:  groupName,
+		Skills:     skills,
+		StartedAt:  startedAt,
+		FinishAt:   finishAt,
+		BookedTime: bookedTime,
 	}, nil
 }
 
@@ -160,23 +152,6 @@ func (c *Character) FinishTime() (time.Time, error) {
 	return *c.FinishAt, nil
 }
 
-var ErrCharacterAlreadyFinished = errors.New("character already finished")
-
-func (c *Character) Finish() error {
-	if !c.IsStarted() {
-		return ErrCharacterNotStarted
-	}
-
-	if c.IsFinished() {
-		return ErrCharacterAlreadyFinished
-	}
-
-	t := time.Now()
-	c.FinishAt = &t
-
-	return nil
-}
-
 func (c *Character) IsProcessing() bool {
 	return c.IsStarted() && !c.IsFinished()
 }
@@ -189,93 +164,64 @@ func (c *Character) Rating() float64 {
 	return c.ratingFactor() * float64(c.ratingBase())
 }
 
-var ErrInvalidScore = errors.New("invalid score")
-
-func (c *Character) IncSkill(t SkillType, score int) error {
-	if score < 0 || score > MaxScore {
-		return ErrInvalidScore
-	}
-
+func (c *Character) IncSkill(t SkillType, score int) {
 	c.Skills[t] += score
-
-	return nil
 }
 
 func (c *Character) HasBooking() bool {
-	if c.BookedLocationUUID == nil || c.BookedLocationTo == nil {
-		return false
+	return c.BookedTime != nil
+}
+
+var ErrCharacterHasNotBooking = errors.New("character has not booking")
+
+func (c *Character) BookedTimeOrErr() (BookedTime, error) {
+	if c.BookedTime == nil {
+		return BookedTime{}, ErrCharacterHasNotBooking
 	}
-	return time.Now().Before(*c.BookedLocationTo)
+	return *c.BookedTime, nil
 }
 
 var ErrCharacterAlreadyHasBooking = errors.New("character already has booking")
-var ErrCharacterBookingIsTooLate = errors.New("booking is too late")
-var ErrCharacterBookingIsTooClose = errors.New("booking is too close")
+var ErrCharacterBookingAfterFinish = errors.New("character booking after finish")
+var ErrCharacterBookingIsTooClose = errors.New("character booking is too late")
 
-func (c *Character) CanBook(loc *Location, t time.Time) error {
-	if !c.IsStarted() {
-		return ErrCharacterNotStarted
-	}
-
-	if c.IsFinished() {
-		return ErrCharacterAlreadyFinished
-	}
-
-	if t.After(*c.FinishAt) {
-		return ErrCharacterBookingIsTooLate
-	}
-
-	if t.Sub(time.Now()) < MinimalDurationBeforeBooking {
-		return ErrCharacterBookingIsTooClose
-	}
-
+func (c *Character) CanBook(t time.Time) error {
 	if c.HasBooking() {
 		return ErrCharacterAlreadyHasBooking
 	}
 
-	if err := loc.CanBook(t); err != nil {
+	finish, err := c.FinishTime()
+	if err != nil {
 		return err
+	}
+
+	if t.After(finish) {
+		return ErrCharacterBookingAfterFinish
+	}
+
+	if t.Add(-MinimalDurationBeforeBooking).Before(time.Now()) {
+		return ErrCharacterBookingIsTooClose
 	}
 
 	return nil
 }
 
-func (c *Character) Book(loc *Location, t time.Time) error {
-	if err := c.CanBook(loc, t); err != nil {
+func (c *Character) AddBooking(bookTime BookedTime) error {
+	if err := c.CanBook(bookTime.Start); err != nil {
 		return err
 	}
 
-	if err := loc.AddBooking(t, c.Username); err != nil {
-		return err
-	}
-
-	c.book(loc, t)
+	c.BookedTime = &bookTime
 
 	return nil
 }
 
-var ErrCharacterHasNotBooking = errors.New("character has not booked location")
-var ErrCharacterBookingMismatch = errors.New("character booking location mismatch")
-
-func (c *Character) BookedLocation() (string, error) {
-	if !c.HasBooking() {
-		return "", ErrCharacterHasNotBooking
-	}
-
-	return *c.BookedLocationUUID, nil
-}
-
-func (c *Character) RemoveBooking(l *Location) error {
+func (c *Character) RemoveBooking() error {
 	if !c.HasBooking() {
 		return ErrCharacterHasNotBooking
 	}
 
-	if *c.BookedLocationUUID != l.UUID {
-		return ErrCharacterBookingMismatch
-	}
-
-	c.BookedLocationUUID = nil
-	c.BookedLocationTo = nil
+	c.BookedTime = nil
 
 	return nil
 }
@@ -296,10 +242,4 @@ func (c *Character) ratingFactor() float64 {
 		k += lambda * float64(c.Skills[s])
 	}
 	return k
-}
-
-func (c *Character) book(l *Location, t time.Time) {
-	c.BookedLocationUUID = &l.UUID
-	t = t.Add(BookInterval)
-	c.BookedLocationTo = &t
 }

@@ -18,13 +18,13 @@ type BookLocation struct {
 type BookLocationHandler decorator.CommandHandler[BookLocation]
 
 type bookLocationHandler struct {
-	chars sm.CharactersRepository
-	locs  sm.LocationsRepository
+	chars      sm.CharactersRepository
+	activities sm.ActivitiesRepository
 }
 
 func NewBookLocationHandler(
 	chars sm.CharactersRepository,
-	locs sm.LocationsRepository,
+	activities sm.ActivitiesRepository,
 	log *slog.Logger,
 	metricsClient decorator.MetricsClient,
 ) BookLocationHandler {
@@ -32,21 +32,35 @@ func NewBookLocationHandler(
 		panic("characters repository is nil")
 	}
 
-	if locs == nil {
-		panic("locations repository is nil")
+	if activities == nil {
+		panic("activities repository is nil")
 	}
 
 	return decorator.ApplyCommandDecorators[BookLocation](
-		&bookLocationHandler{chars: chars, locs: locs},
+		&bookLocationHandler{chars, activities},
 		log,
 		metricsClient,
 	)
 }
 
 func (h *bookLocationHandler) Handle(ctx context.Context, cmd BookLocation) error {
-	return h.locs.Update(ctx, cmd.LocationUUID, func(innerCtx context.Context, loc *sm.Location) error {
+	bookTime, err := sm.NewBookedTime(cmd.Username, cmd.LocationUUID, cmd.Time, true)
+	if err != nil {
+		return err
+	}
+
+	return h.activities.Update(ctx, cmd.LocationUUID, func(innerCtx context.Context, activity *sm.Activity) error {
+		loc, err := activity.LocationOrErr()
+		if err != nil {
+			return err
+		}
+
+		if err := loc.AddBooking(bookTime); err != nil {
+			return err
+		}
+
 		return h.chars.Update(innerCtx, cmd.Username, func(innerCtx2 context.Context, char *sm.Character) error {
-			return char.Book(loc, cmd.Time)
+			return char.AddBooking(bookTime)
 		})
 	})
 }

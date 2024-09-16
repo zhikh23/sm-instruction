@@ -14,29 +14,35 @@ type GetLocation struct {
 type GetLocationHandler decorator.QueryHandler[GetLocation, Location]
 
 type getLocationHandler struct {
-	locs sm.LocationsRepository
+	activities sm.ActivitiesRepository
 }
 
 func NewGetLocationHandler(
-	locs sm.LocationsRepository,
+	activities sm.ActivitiesRepository,
 	log *slog.Logger,
 	metricsClient decorator.MetricsClient,
 ) GetLocationHandler {
-	if locs == nil {
+	if activities == nil {
 		panic("locations repository is nil")
 	}
 
 	return decorator.ApplyQueryDecorators[GetLocation, Location](
-		&getLocationHandler{locs: locs},
+		&getLocationHandler{activities},
 		log,
 		metricsClient,
 	)
 }
 
 func (h *getLocationHandler) Handle(ctx context.Context, query GetLocation) (Location, error) {
-	loc, err := h.locs.Location(ctx, query.UUID)
+	act, err := h.activities.Activity(ctx, query.UUID)
 	if err != nil {
 		return Location{}, err
 	}
-	return convertLocationToApp(loc), nil
+
+	_, err = act.LocationOrErr()
+	if err != nil {
+		return Location{}, err
+	}
+
+	return convertLocationToApp(act), nil
 }
