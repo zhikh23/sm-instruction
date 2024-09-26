@@ -2,9 +2,8 @@ package mocks
 
 import (
 	"context"
-	"sync"
-
 	"sm-instruction/internal/domain/sm"
+	"sync"
 )
 
 type mockCharactersRepository struct {
@@ -13,29 +12,40 @@ type mockCharactersRepository struct {
 }
 
 func NewMockCharactersRepository() sm.CharactersRepository {
-	return &mockCharactersRepository{
+	r := &mockCharactersRepository{
 		m: make(map[string]sm.Character),
 	}
+
+	_ = r.Save(nil, sm.MustNewCharacter(
+		"СМ1-11Б",
+		"zhikhkirill",
+		[]*sm.Slot{
+			sm.MustNewSlot(timeWithMinutes(0), timeWithMinutes(15)),
+			sm.MustNewSlot(timeWithMinutes(15), timeWithMinutes(30)),
+		},
+	))
+
+	return r
 }
 
 func (r *mockCharactersRepository) Save(_ context.Context, char *sm.Character) error {
 	r.Lock()
 	defer r.Unlock()
 
-	if _, ok := r.m[char.Username]; ok {
+	if _, ok := r.m[char.GroupName]; ok {
 		return sm.ErrCharacterAlreadyExists
 	}
 
-	r.m[char.Username] = *char
+	r.m[char.GroupName] = *char
 
 	return nil
 }
 
-func (r *mockCharactersRepository) Character(_ context.Context, username string) (*sm.Character, error) {
+func (r *mockCharactersRepository) Character(_ context.Context, groupName string) (*sm.Character, error) {
 	r.RLock()
 	defer r.RUnlock()
 
-	char, ok := r.m[username]
+	char, ok := r.m[groupName]
 	if !ok {
 		return nil, sm.ErrCharacterNotFound
 	}
@@ -43,12 +53,12 @@ func (r *mockCharactersRepository) Character(_ context.Context, username string)
 	return &char, nil
 }
 
-func (r *mockCharactersRepository) CharacterByGroup(_ context.Context, groupName string) (*sm.Character, error) {
+func (r *mockCharactersRepository) CharacterByUsername(_ context.Context, username string) (*sm.Character, error) {
 	r.RLock()
 	defer r.RUnlock()
 
 	for _, char := range r.m {
-		if char.GroupName == groupName {
+		if char.Username == username {
 			return &char, nil
 		}
 	}
@@ -58,13 +68,13 @@ func (r *mockCharactersRepository) CharacterByGroup(_ context.Context, groupName
 
 func (r *mockCharactersRepository) Update(
 	ctx context.Context,
-	username string,
+	groupName string,
 	updateFn func(innerCtx context.Context, char *sm.Character) error,
 ) error {
 	r.Lock()
 	defer r.Unlock()
 
-	char, ok := r.m[username]
+	char, ok := r.m[groupName]
 	if !ok {
 		return sm.ErrCharacterNotFound
 	}
@@ -74,7 +84,7 @@ func (r *mockCharactersRepository) Update(
 		return err
 	}
 
-	r.m[username] = char
+	r.m[groupName] = char
 
 	return nil
 }

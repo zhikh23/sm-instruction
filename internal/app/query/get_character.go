@@ -9,7 +9,7 @@ import (
 )
 
 type GetCharacter struct {
-	Username string
+	GroupName string
 }
 
 type GetCharacterHandler decorator.QueryHandler[GetCharacter, Character]
@@ -35,7 +35,7 @@ func NewGetCharacterHandler(
 }
 
 func (h getCharacterHandler) Handle(ctx context.Context, query GetCharacter) (Character, error) {
-	char, err := h.chars.Character(ctx, query.Username)
+	char, err := h.chars.Character(ctx, query.GroupName)
 	if err != nil {
 		return Character{}, err
 	}

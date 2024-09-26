@@ -10,8 +10,8 @@ var ErrCharacterNotFound = errors.New("character not found")
 
 type CharactersRepository interface {
 	Save(ctx context.Context, character *Character) error
-	Character(ctx context.Context, username string) (*Character, error)
-	CharacterByGroup(ctx context.Context, groupName string) (*Character, error)
+	Character(ctx context.Context, groupName string) (*Character, error)
+	CharacterByUsername(ctx context.Context, username string) (*Character, error)
 	Update(
 		ctx context.Context,
 		username string,

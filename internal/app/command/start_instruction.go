@@ -9,9 +9,7 @@ import (
 )
 
 type StartInstruction struct {
-	ChatID    int64
-	Username  string
-	GroupName string
+	Username string
 }
 
 type StartInstructionHandler decorator.CommandHandler[StartInstruction]
@@ -35,23 +33,12 @@ func NewStartInstructionHandler(
 }
 
 func (h *startInstructionHandler) Handle(ctx context.Context, cmd StartInstruction) error {
-	user, err := sm.NewUser(cmd.Username, sm.Participant)
+	char, err := h.chars.CharacterByUsername(ctx, cmd.Username)
 	if err != nil {
 		return err
 	}
 
-	char, err := sm.NewCharacter(cmd.Username, cmd.GroupName)
-	if err != nil {
-		return err
-	}
-
-	if err = char.Start(); err != nil {
-		return err
-	}
-
-	if err = h.users.Upsert(ctx, user); err != nil {
-		return err
-	}
-
-	return h.chars.Save(ctx, char)
+	return h.chars.Update(ctx, char.Username, func(innerCtx context.Context, char *sm.Character) error {
+		return char.Start()
+	})
 }

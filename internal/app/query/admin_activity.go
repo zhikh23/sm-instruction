@@ -8,33 +8,33 @@ import (
 	"sm-instruction/internal/domain/sm"
 )
 
-type GetActivityByAdmin struct {
+type AdminActivity struct {
 	Username string
 }
 
-type GetActivityByAdminHandler decorator.QueryHandler[GetActivityByAdmin, Activity]
+type AdminActivityHandler decorator.QueryHandler[AdminActivity, Activity]
 
-type getActivityByAdmin struct {
+type adminActivityHandler struct {
 	activities sm.ActivitiesRepository
 }
 
-func NewGetActivityByAdmin(
+func NewAdminActivtyHandler(
 	activities sm.ActivitiesRepository,
 	log *slog.Logger,
 	metricsClient decorator.MetricsClient,
-) GetActivityByAdminHandler {
+) AdminActivityHandler {
 	if activities == nil {
 		panic("activities repository is nil")
 	}
 
-	return decorator.ApplyQueryDecorators[GetActivityByAdmin, Activity](
-		&getActivityByAdmin{activities},
+	return decorator.ApplyQueryDecorators[AdminActivity, Activity](
+		&adminActivityHandler{activities},
 		log,
 		metricsClient,
 	)
 }
 
-func (h *getActivityByAdmin) Handle(ctx context.Context, query GetActivityByAdmin) (Activity, error) {
+func (h *adminActivityHandler) Handle(ctx context.Context, query AdminActivity) (Activity, error) {
 	act, err := h.activities.ActivityByAdmin(ctx, query.Username)
 	if err != nil {
 		return Activity{}, err

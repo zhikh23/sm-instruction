@@ -9,7 +9,7 @@ import (
 )
 
 type GetActivity struct {
-	ActivityUUID string
+	ActivityName string
 }
 
 type GetActivityHandler decorator.QueryHandler[GetActivity, Activity]
@@ -35,7 +35,7 @@ func NewGetActivityHandler(
 }
 
 func (h *getActivityHandler) Handle(ctx context.Context, query GetActivity) (Activity, error) {
-	act, err := h.activities.Activity(ctx, query.ActivityUUID)
+	act, err := h.activities.Activity(ctx, query.ActivityName)
 	if err != nil {
 		return Activity{}, err
 	}

@@ -12,25 +12,16 @@ type Application struct {
 
 type Commands struct {
 	StartInstruction command.StartInstructionHandler
-
-	BookLocation  command.BookLocationHandler
-	RemoveBooking command.RemoveBookingHandler
-
-	AwardCharacter command.AwardCharacterHandler
+	AwardCharacter   command.AwardCharacterHandler
+	TakeSlot         command.TakeSlotHandler
 }
 
 type Queries struct {
-	UserIsAdministrator query.UserIsAdministratorHandler
-
-	CharacterIsStarted  query.CharacterIsStartedHandler
+	GetUser             query.GetUserHandler
+	CharacterByUsername query.CharacterByUsernameHandler
 	GetCharacter        query.GetCharacterHandler
-	GetCharacterByGroup query.GetCharacterByGroupHandler
-
-	GetActivity        query.GetActivityHandler
-	GetActivityByAdmin query.GetActivityByAdminHandler
-
-	GetLocation           query.GetLocationHandler
-	GetAllLocations       query.GetAllLocationsHandler
-	GetLocationByName     query.GetLocationByNameHandler
-	GetAvailableIntervals query.GetAvailableIntervalsHandler
+	GetActivity         query.GetActivityHandler
+	AdminActivity       query.AdminActivityHandler
+	AvailableActivities query.AvailableActivitiesHandler
+	AvailableSlots      query.AvailableSlotsHandler
 }

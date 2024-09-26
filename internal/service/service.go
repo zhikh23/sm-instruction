@@ -34,26 +34,17 @@ func newApplication(
 	return &app.Application{
 		Commands: app.Commands{
 			StartInstruction: command.NewStartInstructionHandler(users, chars, log, metricsClient),
-
-			BookLocation:  command.NewBookLocationHandler(chars, activities, log, metricsClient),
-			RemoveBooking: command.NewRemoveBookingHandler(chars, activities, log, metricsClient),
-
-			AwardCharacter: command.NewAwardCharacterHandler(chars, activities, log, metricsClient),
+			AwardCharacter:   command.NewAwardCharacterHandler(chars, activities, log, metricsClient),
+			TakeSlot:         command.NewTakeSlotHandler(chars, activities, log, metricsClient),
 		},
 		Queries: app.Queries{
-			UserIsAdministrator: query.NewUserIsAdministratorHandler(users, log, metricsClient),
-
-			CharacterIsStarted:  query.NewCharacterIsStarted(chars, log, metricsClient),
+			GetUser:             query.NewGetUserHandler(users, log, metricsClient),
+			CharacterByUsername: query.NewCharacterByUsernameHandler(chars, log, metricsClient),
 			GetCharacter:        query.NewGetCharacterHandler(chars, log, metricsClient),
-			GetCharacterByGroup: query.NewGetCharacterByGroupHandler(chars, log, metricsClient),
-
-			GetActivity:        query.NewGetActivityHandler(activities, log, metricsClient),
-			GetActivityByAdmin: query.NewGetActivityByAdmin(activities, log, metricsClient),
-
-			GetLocation:           query.NewGetLocationHandler(activities, log, metricsClient),
-			GetAllLocations:       query.NewGetAllLocationsHandler(activities, log, metricsClient),
-			GetLocationByName:     query.NewGetLocationByNameHandler(activities, log, metricsClient),
-			GetAvailableIntervals: query.NewGetAvailableIntervalsHandler(chars, activities, log, metricsClient),
+			GetActivity:         query.NewGetActivityHandler(activities, log, metricsClient),
+			AdminActivity:       query.NewAdminActivtyHandler(activities, log, metricsClient),
+			AvailableActivities: query.NewAvailableActivitiesHandler(activities, log, metricsClient),
+			AvailableSlots:      query.NewAvailableSlotsHandler(chars, activities, log, metricsClient),
 		},
 	}
 }

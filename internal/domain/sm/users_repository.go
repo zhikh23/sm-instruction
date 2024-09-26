@@ -5,9 +5,10 @@ import (
 	"errors"
 )
 
+var ErrUserAlreadyExists = errors.New("user already exists")
 var ErrUserNotFound = errors.New("user not found")
 
 type UsersRepository interface {
-	Upsert(ctx context.Context, user User) error
+	Save(ctx context.Context, user User) error
 	User(ctx context.Context, username string) (User, error)
 }

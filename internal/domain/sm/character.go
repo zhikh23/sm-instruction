@@ -9,28 +9,25 @@ import (
 	"sm-instruction/internal/common/commonerrs"
 )
 
-const MaxDurationInstruction = 4 * time.Hour
-const MinimalDurationBeforeBooking = 5 * time.Minute
-
 type Character struct {
-	Username   string
-	GroupName  string
-	Skills     map[SkillType]int
-	StartedAt  *time.Time
-	FinishAt   *time.Time
-	BookedTime *BookedTime
+	GroupName string
+	Username  string
+	Skills    map[SkillType]int
+	StartedAt *time.Time
+	slots     map[time.Time]*Slot
 }
 
 func NewCharacter(
-	username string,
 	groupName string,
+	username string,
+	slots []*Slot,
 ) (*Character, error) {
-	if username == "" {
-		return nil, commonerrs.NewInvalidInputError("expected not empty username")
-	}
-
 	if groupName == "" {
 		return nil, commonerrs.NewInvalidInputError("expected not empty group")
+	}
+
+	if username == "" {
+		return nil, commonerrs.NewInvalidInputError("expected not empty username")
 	}
 
 	if err := ValidateGroupName(groupName); err != nil {
@@ -42,21 +39,26 @@ func NewCharacter(
 		skills[s] = 0
 	}
 
+	mappedSlots, err := mapSlots(slots)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Character{
-		Username:   username,
-		GroupName:  groupName,
-		Skills:     skills,
-		StartedAt:  nil,
-		FinishAt:   nil,
-		BookedTime: nil,
+		GroupName: groupName,
+		Username:  username,
+		Skills:    skills,
+		StartedAt: nil,
+		slots:     mappedSlots,
 	}, nil
 }
 
 func MustNewCharacter(
-	username string,
 	groupName string,
+	username string,
+	slots []*Slot,
 ) *Character {
-	c, err := NewCharacter(username, groupName)
+	c, err := NewCharacter(groupName, username, slots)
 	if err != nil {
 		panic(err)
 	}
@@ -71,9 +73,8 @@ func UnmarshallCharacterFromDB(
 	socialSkill int,
 	creativeSkill int,
 	sportiveSkill int,
-	startedAt *time.Time,
-	finishAt *time.Time,
-	bookedTime *BookedTime,
+	startedAt time.Time,
+	slots []*Slot,
 ) (*Character, error) {
 	if username == "" {
 		return nil, commonerrs.NewInvalidInputError("expected not empty username")
@@ -94,13 +95,21 @@ func UnmarshallCharacterFromDB(
 	skills[Sportive] = sportiveSkill
 	skills[Creative] = creativeSkill
 
+	if slots == nil {
+		slots = make([]*Slot, 0)
+	}
+
+	mappedSlots, err := mapSlots(slots)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Character{
-		Username:   username,
-		GroupName:  groupName,
-		Skills:     skills,
-		StartedAt:  startedAt,
-		FinishAt:   finishAt,
-		BookedTime: bookedTime,
+		Username:  username,
+		GroupName: groupName,
+		Skills:    skills,
+		StartedAt: &startedAt,
+		slots:     mappedSlots,
 	}, nil
 }
 
@@ -116,46 +125,6 @@ func ValidateGroupName(groupName string) error {
 	return nil
 }
 
-var ErrCharacterAlreadyStarted = errors.New("character already started")
-
-func (c *Character) Start() error {
-	if c.IsStarted() {
-		return ErrCharacterAlreadyStarted
-	}
-
-	start := time.Now()
-	c.StartedAt = &start
-	finish := start.Add(MaxDurationInstruction)
-	c.FinishAt = &finish
-
-	return nil
-}
-
-func (c *Character) IsStarted() bool {
-	return c.StartedAt != nil
-}
-
-func (c *Character) IsFinished() bool {
-	if !c.IsStarted() {
-		return false
-	}
-	return time.Now().After(*c.FinishAt)
-}
-
-var ErrCharacterNotStarted = errors.New("character is not started")
-
-func (c *Character) FinishTime() (time.Time, error) {
-	if !c.IsStarted() {
-		return time.Time{}, ErrCharacterNotStarted
-	}
-
-	return *c.FinishAt, nil
-}
-
-func (c *Character) IsProcessing() bool {
-	return c.IsStarted() && !c.IsFinished()
-}
-
 func (c *Character) Skill(t SkillType) int {
 	return c.Skills[t]
 }
@@ -164,66 +133,65 @@ func (c *Character) Rating() float64 {
 	return c.ratingFactor() * float64(c.ratingBase())
 }
 
+func (c *Character) Slots() []*Slot {
+	slots := make([]*Slot, 0, len(c.slots))
+	for _, slot := range c.slots {
+		slots = append(slots, slot)
+	}
+	return slots
+}
+
 func (c *Character) IncSkill(t SkillType, score int) {
 	c.Skills[t] += score
 }
 
-func (c *Character) HasBooking() bool {
-	return c.BookedTime != nil
+func (c *Character) AvailableSlots() []*Slot {
+	return filter(c.Slots(), slotIsAvailable)
 }
 
-var ErrCharacterHasNotBooking = errors.New("character has not booking")
+var ErrAlreadyStarted = errors.New("character already started")
 
-func (c *Character) BookedTimeOrErr() (BookedTime, error) {
-	if c.BookedTime == nil {
-		return BookedTime{}, ErrCharacterHasNotBooking
-	}
-	return *c.BookedTime, nil
-}
-
-var ErrCharacterAlreadyHasBooking = errors.New("character already has booking")
-var ErrCharacterBookingAfterFinish = errors.New("character booking after finish")
-var ErrCharacterBookingIsTooClose = errors.New("character booking is too late")
-
-func (c *Character) CanBook(t time.Time) error {
-	if c.HasBooking() {
-		return ErrCharacterAlreadyHasBooking
+func (c *Character) Start() error {
+	if c.StartedAt != nil {
+		return ErrAlreadyStarted
 	}
 
-	finish, err := c.FinishTime()
-	if err != nil {
-		return err
-	}
-
-	if t.After(finish) {
-		return ErrCharacterBookingAfterFinish
-	}
-
-	if t.Add(-MinimalDurationBeforeBooking).Before(time.Now()) {
-		return ErrCharacterBookingIsTooClose
-	}
+	t := time.Now()
+	c.StartedAt = &t
 
 	return nil
 }
 
-func (c *Character) AddBooking(bookTime BookedTime) error {
-	if err := c.CanBook(bookTime.Start); err != nil {
-		return err
+var ErrSlotNotFound = errors.New("slot not found")
+
+func (c *Character) TakeSlot(start time.Time, activityName string) error {
+	fmt.Println(c.slots)
+	slot, ok := c.slots[start]
+	if !ok {
+		return ErrSlotNotFound
 	}
 
-	c.BookedTime = &bookTime
-
-	return nil
+	return slot.Take(activityName)
 }
 
-func (c *Character) RemoveBooking() error {
-	if !c.HasBooking() {
-		return ErrCharacterHasNotBooking
+func (c *Character) FreeSlot(start time.Time) error {
+	slot, ok := c.slots[start]
+	if !ok {
+		return ErrSlotNotFound
 	}
 
-	c.BookedTime = nil
+	return slot.Free()
+}
 
-	return nil
+func mapSlots(slots []*Slot) (map[time.Time]*Slot, error) {
+	m := make(map[time.Time]*Slot)
+	for _, slot := range slots {
+		if _, ok := m[slot.Start]; ok {
+			return nil, ErrSlotAlreadyExists
+		}
+		m[slot.Start] = slot
+	}
+	return m, nil
 }
 
 func (c *Character) ratingBase() int {
@@ -234,7 +202,7 @@ func (c *Character) ratingBase() int {
 	return r
 }
 
-const lambda = 0.1
+const lambda = 0.25
 
 func (c *Character) ratingFactor() float64 {
 	k := 1.0
@@ -242,4 +210,18 @@ func (c *Character) ratingFactor() float64 {
 		k += lambda * float64(c.Skills[s])
 	}
 	return k
+}
+
+func slotIsAvailable(slot *Slot) bool {
+	return slot.IsAvailable()
+}
+
+func filter[T any](collection []T, predicate func(T) bool) []T {
+	res := make([]T, 0, len(collection))
+	for _, x := range collection {
+		if predicate(x) {
+			res = append(res, x)
+		}
+	}
+	return res
 }

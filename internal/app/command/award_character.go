@@ -8,8 +8,8 @@ import (
 )
 
 type AwardCharacter struct {
-	Username     string
-	ActivityUUID string
+	GroupName    string
+	ActivityName string
 	SkillType    string
 	Points       int
 }
@@ -47,12 +47,12 @@ func (h *awardCharacterHandler) Handle(ctx context.Context, cmd AwardCharacter) 
 		return err
 	}
 
-	act, err := h.activities.Activity(ctx, cmd.ActivityUUID)
+	act, err := h.activities.Activity(ctx, cmd.ActivityName)
 	if err != nil {
 		return err
 	}
 
-	return h.chars.Update(ctx, cmd.Username, func(innerCtx context.Context, char *sm.Character) error {
+	return h.chars.Update(ctx, cmd.GroupName, func(innerCtx context.Context, char *sm.Character) error {
 		return act.Award(char, st, cmd.Points)
 	})
 }

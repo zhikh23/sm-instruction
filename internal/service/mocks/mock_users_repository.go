@@ -13,21 +13,29 @@ type mockUsersRepository struct {
 }
 
 func NewMockUsersRepository() sm.UsersRepository {
-	return &mockUsersRepository{
+	r := &mockUsersRepository{
 		m: map[string]sm.User{},
 	}
+
+	_ = r.Save(nil, sm.MustNewUser("zhikhkirill", sm.Participant))
+
+	return r
 }
 
-func (r *mockUsersRepository) Upsert(ctx context.Context, user sm.User) error {
+func (r *mockUsersRepository) Save(_ context.Context, user sm.User) error {
 	r.Lock()
 	defer r.Unlock()
+
+	if _, ok := r.m[user.Username]; ok {
+		return sm.ErrUserAlreadyExists
+	}
 
 	r.m[user.Username] = user
 
 	return nil
 }
 
-func (r *mockUsersRepository) User(ctx context.Context, username string) (sm.User, error) {
+func (r *mockUsersRepository) User(_ context.Context, username string) (sm.User, error) {
 	r.RLock()
 	defer r.RUnlock()
 

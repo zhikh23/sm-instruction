@@ -3,33 +3,41 @@ package sm
 import (
 	"errors"
 	"slices"
+	"sm-instruction/pkg/funcs"
+	"time"
 
 	"sm-instruction/internal/common/commonerrs"
 )
 
 type Activity struct {
-	UUID      string
-	Name      string
-	Admins    []User
-	Skills    []SkillType
-	MaxPoints int
-	Location  *Location
+	Name        string
+	Description *string
+	Location    *string
+	Admins      []User
+	Skills      []SkillType
+	MaxPoints   int
+	slots       map[time.Time]*Slot
 }
 
 func NewActivity(
-	uuid string,
 	name string,
+	description *string,
+	location *string,
 	admins []User,
 	skills []SkillType,
 	maxPoints int,
-	location *Location,
+	slots []*Slot,
 ) (*Activity, error) {
-	if uuid == "" {
-		return nil, commonerrs.NewInvalidInputError("expected not empty uuid")
-	}
-
 	if name == "" {
 		return nil, commonerrs.NewInvalidInputError("expected not empty name")
+	}
+
+	if description != nil && *description == "" {
+		return nil, commonerrs.NewInvalidInputError("expected not empty description or nil")
+	}
+
+	if location != nil && *location == "" {
+		return nil, commonerrs.NewInvalidInputError("expected not empty name or nil")
 	}
 
 	if len(admins) == 0 {
@@ -58,25 +66,36 @@ func NewActivity(
 		return nil, commonerrs.NewInvalidInputError("expected positive max points")
 	}
 
+	if slots == nil {
+		slots = make([]*Slot, 0)
+	}
+
+	mappedSlots, err := mapSlots(slots)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Activity{
-		UUID:      uuid,
-		Name:      name,
-		Admins:    admins,
-		Skills:    skills,
-		MaxPoints: maxPoints,
-		Location:  location,
+		Name:        name,
+		Description: description,
+		Location:    location,
+		Admins:      admins,
+		Skills:      skills,
+		MaxPoints:   maxPoints,
+		slots:       mappedSlots,
 	}, nil
 }
 
 func MustNewActivity(
-	uuid string,
 	name string,
+	description *string,
+	location *string,
 	admins []User,
 	skills []SkillType,
 	maxPoints int,
-	location *Location,
+	slots []*Slot,
 ) *Activity {
-	a, err := NewActivity(uuid, name, admins, skills, maxPoints, location)
+	a, err := NewActivity(name, description, location, admins, skills, maxPoints, slots)
 	if err != nil {
 		panic(err)
 	}
@@ -86,9 +105,12 @@ func MustNewActivity(
 func UnmarshallActivityFromDB(
 	uuid string,
 	name string,
+	description *string,
+	location *string,
 	admins []User,
 	skillsStr []string,
 	maxPoints int,
+	slots []*Slot,
 ) (*Activity, error) {
 	if uuid == "" {
 		return nil, commonerrs.NewInvalidInputError("expected not empty uuid")
@@ -96,6 +118,14 @@ func UnmarshallActivityFromDB(
 
 	if name == "" {
 		return nil, commonerrs.NewInvalidInputError("expected not empty name")
+	}
+
+	if description != nil && *description == "" {
+		return nil, commonerrs.NewInvalidInputError("expected not empty description or nil")
+	}
+
+	if location != nil && *location == "" {
+		return nil, commonerrs.NewInvalidInputError("expected not empty name or nil")
 	}
 
 	if len(admins) == 0 {
@@ -119,23 +149,26 @@ func UnmarshallActivityFromDB(
 		skills[i] = skill
 	}
 
+	mappedSlots, err := mapSlots(slots)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Activity{
-		UUID:      uuid,
 		Name:      name,
 		Admins:    admins,
 		Skills:    skills,
 		MaxPoints: maxPoints,
+		slots:     mappedSlots,
 	}, nil
 }
 
-var ErrActivityHasNotLocation = errors.New("activity has not Location")
-
-func (a *Activity) LocationOrErr() (*Location, error) {
-	if a.Location == nil {
-		return nil, ErrActivityHasNotLocation
+func (a *Activity) Slots() []*Slot {
+	slots := make([]*Slot, 0, len(a.slots))
+	for _, s := range a.slots {
+		slots = append(slots, s)
 	}
-
-	return a.Location, nil
+	return slots
 }
 
 var ErrCannotIncSkill = errors.New("cannot increment skill")
@@ -153,4 +186,28 @@ func (a *Activity) Award(char *Character, skill SkillType, points int) error {
 	char.IncSkill(skill, points)
 
 	return nil
+}
+
+func (a *Activity) TakeSlot(start time.Time, groupName string) error {
+	slot, ok := a.slots[start]
+	if !ok {
+		return ErrSlotNotFound
+	}
+
+	return slot.Take(groupName)
+}
+
+func (a *Activity) FreeSlot(start time.Time) error {
+	slot, ok := a.slots[start]
+	if !ok {
+		return ErrSlotNotFound
+	}
+
+	return slot.Free()
+}
+
+func (a *Activity) AvailableSlots() []*Slot {
+	return funcs.Filter(a.Slots(), func(slot *Slot) bool {
+		return slot.IsAvailable()
+	})
 }
