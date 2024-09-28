@@ -64,7 +64,7 @@ func main() {
 	for group := range groups {
 		username, ok := mapGroupToUsername[group]
 		if !ok {
-			log.Fatalf("Username for group %s not found", group)
+			log.Fatalf("GroupName for group %s not found", group)
 		}
 		user := sm.MustNewUser(username, sm.Participant)
 		users[user.Username] = user

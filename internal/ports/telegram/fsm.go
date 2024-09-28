@@ -1,6 +1,8 @@
 package telegram
 
 import (
+	"context"
+
 	"github.com/vitaliy-ukiru/fsm-telebot/v2"
 	"github.com/vitaliy-ukiru/fsm-telebot/v2/fsmopt"
 	"gopkg.in/telebot.v3"
@@ -22,6 +24,14 @@ const (
 )
 
 func (p *Port) RegisterFSMManager(m *fsm.Manager, dp fsm.Dispatcher) {
+	dp.Dispatch(m.New(
+		fsmopt.OnStates(fsm.AnyState),
+		fsmopt.On("/cancel"),
+		fsmopt.Do(func(c telebot.Context, state fsm.Context) error {
+			return state.Finish(context.TODO(), c.Data() != "")
+		}),
+	))
+
 	dp.Dispatch(m.New(
 		fsmopt.OnStates(fsm.AnyState),
 		fsmopt.On("/start"),

@@ -10,6 +10,8 @@ import (
 	"github.com/zhikh23/sm-instruction/internal/common/commonerrs"
 )
 
+const InstructionDuration = 4 * time.Hour
+
 var ErrSlotAlreadyExists = errors.New("slot already exists")
 
 type Character struct {
@@ -138,22 +140,44 @@ func (c *Character) AvailableSlots() []*Slot {
 	return filter(c.Slots, slotIsAvailable)
 }
 
-var ErrAlreadyStarted = errors.New("character already started")
+// var ErrAlreadyStarted = errors.New("character already started")
 
 func (c *Character) Start() error {
-	if c.StartedAt != nil {
-		return ErrAlreadyStarted
-	}
+	//	if c.StartedAt != nil {
+	//		return ErrAlreadyStarted
+	//	}
 
 	t := time.Now()
 	c.StartedAt = &t
 
+	// Обрезаем слоты до нужного промежутка времени.
+	//	c.Slots = funcs.Filter(c.Slots, func(slot *Slot) bool {
+	//		return slot.Start.Before(c.StartedAt.Add(InstructionDuration)) // TODO!
+	//	})
+
 	return nil
 }
 
+func (c *Character) IsStarted() bool {
+	return c.StartedAt != nil
+}
+
+func (c *Character) EndTime() time.Time {
+	if !c.IsStarted() {
+		return time.Now().Add(InstructionDuration)
+	}
+
+	return c.StartedAt.Add(InstructionDuration)
+}
+
 var ErrSlotNotFound = errors.New("slot not found")
+var ErrSlotIsTooLate = errors.New("slot is too late")
 
 func (c *Character) TakeSlot(start time.Time, activityName string) error {
+	if start.After(c.EndTime()) {
+		return ErrSlotIsTooLate
+	}
+
 	slot, ok := c.slotByTime(start)
 	if !ok {
 		return ErrSlotNotFound

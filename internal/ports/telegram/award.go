@@ -77,7 +77,7 @@ func (p *Port) awardSendEnterSkill(c telebot.Context, s fsm.Context) error {
 
 func (p *Port) awardSendCharacterNotFound(c telebot.Context, _ fsm.Context) error {
 	return c.Send(buildMessage("\n",
-		"Персонаж с такой группой не найден :(",
+		"🚫 Персонаж с такой группой не найден :(",
 		"Проверь правильность вводимого формата:",
 		"<code>СМ1-11Б</code>",
 		"Попробуй ещё раз.",
@@ -143,7 +143,7 @@ func (p *Port) awardSendEnterPoints(c telebot.Context, s fsm.Context) error {
 }
 
 func (p *Port) awardSendInvalidSkill(c telebot.Context, s fsm.Context) error {
-	err := c.Send("Ой, кажется ты не можешь начислить баллы в этот навык. Попробуй ещё раз.")
+	err := c.Send("🚫 Ой, кажется ты не можешь начислить баллы в этот навык. Попробуй ещё раз.")
 	if err != nil {
 		return err
 	}
@@ -191,7 +191,7 @@ func (p *Port) awardHandlePoints(c telebot.Context, s fsm.Context) error {
 
 func (p *Port) awardSendSuccess(c telebot.Context, s fsm.Context, groupName string, skill string, points int) error {
 	err := c.Send(
-		fmt.Sprintf("Успешно начислены баллы %d в навыки %q группе %s", points, skill, groupName),
+		fmt.Sprintf("✅ Успешно начислены баллы %d в навыки %q группе %s", points, skill, groupName),
 	)
 	if err != nil {
 		return err
@@ -200,7 +200,7 @@ func (p *Port) awardSendSuccess(c telebot.Context, s fsm.Context, groupName stri
 }
 
 func (p *Port) awardSendInvalidPoints(c telebot.Context, s fsm.Context) error {
-	err := c.Send("Кажется это некорректное количество баллов.")
+	err := c.Send("🚫 Кажется это некорректное количество баллов.")
 	if err != nil {
 		return err
 	}

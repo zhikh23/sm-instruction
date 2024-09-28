@@ -31,7 +31,7 @@ func (p *Port) takeSlotSendChooseActivity(c telebot.Context, s fsm.Context) erro
 	}
 
 	if len(activities) == 0 {
-		return c.Send("О-о-опс, кажется, доступное время для записи кончилось :(")
+		return c.Send("🚫 Больше не осталось слотов для записи :(")
 	}
 
 	buttons := make([]string, len(activities))
@@ -61,7 +61,7 @@ func (p *Port) takeSlotHandleActivityName(c telebot.Context, s fsm.Context) erro
 
 	_, err := p.app.Queries.GetActivity.Handle(ctx, query.GetActivity{ActivityName: activityName})
 	if errors.Is(err, sm.ErrActivityNotFound) {
-		err = c.Send("Ошибка: выбери одну из предложенных точек.")
+		err = c.Send("🚫 Выбери одну из предложенных точек.")
 		if err != nil {
 			return err
 		}
@@ -99,7 +99,7 @@ func (p *Port) takeSlotSendSlots(c telebot.Context, s fsm.Context) error {
 	}
 
 	if len(slots) == 0 {
-		if err = c.Send("Ошибка: нет свободных слотов для записи."); err != nil {
+		if err = c.Send("🚫 Нет свободных слотов для записи."); err != nil {
 			return err
 		}
 		return p.sendParticipantMenu(c, s)
@@ -126,7 +126,7 @@ func (p *Port) takeSlotHandleStartTime(c telebot.Context, s fsm.Context) error {
 	startS := c.Message().Text
 	parsed, err := time.Parse(sm.TimeFormat, startS)
 	if err != nil {
-		return c.Send("Ошибка: выбери корректное время начала точки.")
+		return c.Send("🚫 Выбери корректное время начала точки.")
 	}
 	start := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), parsed.Hour(), parsed.Minute(), 0, 0, time.Local)
 
@@ -145,11 +145,16 @@ func (p *Port) takeSlotHandleStartTime(c telebot.Context, s fsm.Context) error {
 		ActivityName: activityName,
 		Start:        start,
 	})
-	if err != nil {
+	if errors.Is(err, sm.ErrSlotIsTooLate) {
+		if err = c.Send("🚫 Ой, кажется ты пытаешься забронировать точку уже после окончания инструкции :("); err != nil {
+			return err
+		}
+		return p.sendParticipantMenu(c, s)
+	} else if err != nil {
 		return err
 	}
 
-	err = c.Send(fmt.Sprintf("Успешно забронирована точка %q на время %s", activityName, startS))
+	err = c.Send(fmt.Sprintf("✅ Успешно забронирована точка %q на время %s", activityName, startS))
 	if err != nil {
 		return err
 	}

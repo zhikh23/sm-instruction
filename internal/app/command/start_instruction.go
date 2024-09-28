@@ -9,7 +9,7 @@ import (
 )
 
 type StartInstruction struct {
-	Username string
+	GroupName string
 }
 
 type StartInstructionHandler decorator.CommandHandler[StartInstruction]
@@ -33,12 +33,7 @@ func NewStartInstructionHandler(
 }
 
 func (h *startInstructionHandler) Handle(ctx context.Context, cmd StartInstruction) error {
-	char, err := h.chars.CharacterByUsername(ctx, cmd.Username)
-	if err != nil {
-		return err
-	}
-
-	return h.chars.Update(ctx, char.Username, func(innerCtx context.Context, char *sm.Character) error {
+	return h.chars.Update(ctx, cmd.GroupName, func(innerCtx context.Context, char *sm.Character) error {
 		return char.Start()
 	})
 }

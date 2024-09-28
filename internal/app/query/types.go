@@ -31,6 +31,8 @@ type Character struct {
 	Rating    float64
 	Slots     []Slot
 	Grades    []Grade
+	Start     time.Time
+	End       time.Time
 }
 
 type Activity struct {
@@ -123,6 +125,8 @@ func convertCharacterToApp(c *sm.Character) Character {
 		Rating:    c.Rating(),
 		Slots:     convertSlotsToApp(c.Slots),
 		Grades:    convertGradesToApp(c.Grades),
+		Start:     *c.StartedAt,
+		End:       c.EndTime(),
 	}
 }
 

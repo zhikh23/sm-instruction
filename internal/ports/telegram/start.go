@@ -3,9 +3,11 @@ package telegram
 import (
 	"context"
 	"errors"
+
 	"github.com/vitaliy-ukiru/fsm-telebot/v2"
 	"gopkg.in/telebot.v3"
 
+	"github.com/zhikh23/sm-instruction/internal/app/command"
 	"github.com/zhikh23/sm-instruction/internal/app/query"
 	"github.com/zhikh23/sm-instruction/internal/domain/sm"
 )
@@ -41,6 +43,13 @@ func (p *Port) StartHandleCommand(c telebot.Context, s fsm.Context) error {
 	}
 
 	if err = s.Update(ctx, groupNameKey, char.GroupName); err != nil {
+		return err
+	}
+
+	err = p.app.Commands.StartInstruction.Handle(ctx, command.StartInstruction{
+		GroupName: char.GroupName,
+	})
+	if err != nil {
 		return err
 	}
 
