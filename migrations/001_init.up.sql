@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS characters (
 
 CREATE TABLE IF NOT EXISTS activities (
     name        VARCHAR (256) PRIMARY KEY,
+    full_name   VARCHAR (256) NOT NULL,
     description TEXT          NULL,
     location    VARCHAR (256) NULL,
     skills      SKILL_TYPE[]  NOT NULL,

@@ -37,6 +37,10 @@ func (p *Port) sendParticipantAdditionalActivities(c telebot.Context, s fsm.Cont
 		buttons[i] = activity.Name
 	}
 
+	if _, err = additionalSticker.Send(c.Bot(), c.Recipient(), nil); err != nil {
+		return err
+	}
+
 	if err = s.SetState(ctx, additionalHandleActivityNameState); err != nil {
 		return err
 	}
@@ -64,7 +68,7 @@ func (p *Port) additionalHandleActivityName(c telebot.Context, s fsm.Context) er
 	}
 
 	msg := buildMessage("\n",
-		fmt.Sprintf("<b>%s</b>", activity.Name),
+		fmt.Sprintf("<b>%s</b>", activity.FullName),
 		"",
 		fmt.Sprintf("🔹 %s", *activity.Description),
 	)

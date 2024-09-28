@@ -13,20 +13,9 @@ type mockCharactersRepository struct {
 }
 
 func NewMockCharactersRepository() sm.CharactersRepository {
-	r := &mockCharactersRepository{
+	return &mockCharactersRepository{
 		m: make(map[string]sm.Character),
 	}
-
-	_ = r.Save(nil, sm.MustNewCharacter(
-		"СМ1-11Б",
-		"zhikhkirill",
-		[]*sm.Slot{
-			sm.MustNewSlot(timeWithMinutes(0), timeWithMinutes(15)),
-			sm.MustNewSlot(timeWithMinutes(15), timeWithMinutes(30)),
-		},
-	))
-
-	return r
 }
 
 func (r *mockCharactersRepository) Save(_ context.Context, char *sm.Character) error {

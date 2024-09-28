@@ -43,6 +43,10 @@ func (p *Port) sendParticipantsGrades(c telebot.Context, s fsm.Context) error {
 		)
 	}
 
+	if _, err = gradesSticker.Send(c.Bot(), c.Recipient(), nil); err != nil {
+		return err
+	}
+
 	if err = c.Send(msg, telebot.ModeHTML); err != nil {
 		return err
 	}

@@ -71,6 +71,7 @@ func (p *gsActivitiesProvider) Activities(ctx context.Context) ([]*sm.Activity, 
 	activities := make([]*sm.Activity, 0)
 	for _, column := range sheet.Columns[2:] {
 		name := column[0].Value
+		fullName := column[1].Value
 
 		maxAdmins := 4
 		adminsNames := make([]string, 0, maxAdmins)
@@ -135,6 +136,7 @@ func (p *gsActivitiesProvider) Activities(ctx context.Context) ([]*sm.Activity, 
 
 		activity, err := sm.NewActivity(
 			name,
+			fullName,
 			pointerIfNotEmpty(desc),
 			pointerIfNotEmpty(location),
 			admins,

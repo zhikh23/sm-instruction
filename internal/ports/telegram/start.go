@@ -63,12 +63,15 @@ func (p *Port) StartHandleCommand(c telebot.Context, s fsm.Context) error {
 
 func (p *Port) sendUserNotFound(c telebot.Context, _ fsm.Context) error {
 	return c.Send(
-		"Пу-пу-пу, я тебя ещё не знаю :(\n" +
+		"🚫 Я тебя ещё не знаю :(\n" +
 			"Пожалуйста, обратись к организаторам «СМ. Инструкции по выживанию».",
 	)
 }
 
 func (p *Port) sendParticipantStartMessage(c telebot.Context, _ fsm.Context) error {
+	if _, err := studentSticker.Send(c.Bot(), c.Recipient(), nil); err != nil {
+		return err
+	}
 	return c.Send(
 		"Привет, участник «СМ. Инструкция по выживанию»!",
 	)

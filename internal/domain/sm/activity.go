@@ -11,6 +11,7 @@ import (
 
 type Activity struct {
 	Name        string
+	FullName    string
 	Description *string
 	Location    *string
 	Admins      []User
@@ -21,6 +22,7 @@ type Activity struct {
 
 func NewActivity(
 	name string,
+	fullName string,
 	description *string,
 	location *string,
 	admins []User,
@@ -30,6 +32,10 @@ func NewActivity(
 ) (*Activity, error) {
 	if name == "" {
 		return nil, commonerrs.NewInvalidInputError("expected not empty name")
+	}
+
+	if fullName == "" {
+		return nil, commonerrs.NewInvalidInputError("expected not empty full name")
 	}
 
 	if description != nil && *description == "" {
@@ -77,6 +83,7 @@ func NewActivity(
 
 	return &Activity{
 		Name:        name,
+		FullName:    fullName,
 		Description: description,
 		Location:    location,
 		Admins:      admins,
@@ -88,6 +95,7 @@ func NewActivity(
 
 func MustNewActivity(
 	name string,
+	fullName string,
 	description *string,
 	location *string,
 	admins []User,
@@ -95,7 +103,7 @@ func MustNewActivity(
 	maxPoints int,
 	slots []*Slot,
 ) *Activity {
-	a, err := NewActivity(name, description, location, admins, skills, maxPoints, slots)
+	a, err := NewActivity(name, fullName, description, location, admins, skills, maxPoints, slots)
 	if err != nil {
 		panic(err)
 	}
@@ -104,6 +112,7 @@ func MustNewActivity(
 
 func UnmarshallActivityFromDB(
 	name string,
+	fullName string,
 	description *string,
 	location *string,
 	admins []User,
@@ -143,6 +152,7 @@ func UnmarshallActivityFromDB(
 
 	return &Activity{
 		Name:        name,
+		FullName:    fullName,
 		Description: description,
 		Location:    location,
 		Admins:      admins,

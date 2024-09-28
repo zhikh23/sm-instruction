@@ -15,59 +15,9 @@ type mockActivitiesRepository struct {
 }
 
 func NewMockActivitiesRepository() sm.ActivitiesRepository {
-	r := &mockActivitiesRepository{
+	return &mockActivitiesRepository{
 		m: make(map[string]sm.Activity),
 	}
-
-	desc1 := "Студсовет СМ – это не просто факультетская организация, состоящая из четырех отделов. Это объединение людей, их идей, и, что самое главное, стремлений идти в ногу со временем. Вместе с ребятами ты сможешь учиться и тусоваться, работать и путешествовать, творить и развиваться! В такой компании даже учёба идёт легче: рядом всегда есть товарищи, которые вдохновляют идти только вперёд! Тебе помогут начать свой путь в общественную деятельность и обучим необходимым навыкам! К активистам Студсовета СМ ты всегда можешь обратиться за помощью и поддержкой! Ребята открыты для всех студентов, стараемся поддерживать идеи и инициативы каждого. На протяжении всего времени существования организация уверенно развивается и объединяет активистов разных курсов и кафедр. За 5 лет студенты провели большое количество уникальных мероприятий, и их число продолжает расти. А точкой зарождения новых идей неизменно становится аудитория 509м."
-	loc1 := "509м"
-	err := r.Save(nil, sm.MustNewActivity(
-		"Студенческий совет СМ",
-		&desc1,
-		&loc1,
-		[]sm.User{
-			sm.MustNewUser("zhikhkirill", sm.Administrator),
-		},
-		[]sm.SkillType{sm.Social},
-		8,
-		[]*sm.Slot{
-			sm.MustNewSlot(timeWithMinutes(0), timeWithMinutes(15)),
-			sm.MustNewSlot(timeWithMinutes(15), timeWithMinutes(30)),
-			sm.MustNewSlot(timeWithMinutes(30), timeWithMinutes(45)),
-			sm.MustNewSlot(timeWithMinutes(45), timeWithMinutes(60)),
-			sm.MustNewSlot(timeWithMinutes(60), timeWithMinutes(75)),
-			sm.MustNewSlot(timeWithMinutes(75), timeWithMinutes(90)),
-			sm.MustNewSlot(timeWithMinutes(90), timeWithMinutes(105)),
-			sm.MustNewSlot(timeWithMinutes(105), timeWithMinutes(120)),
-		},
-	))
-	if err != nil {
-		panic(err)
-	}
-
-	desc2 := "Bauman Racing Team основана в 2012 году и за свою историю постоянно меняющийся коллектив студентов смог успешно реализовать 8 проектов гоночных болидов. В том числе, первый в России беспилотный гоночный электроболид. В данный момент команда занимается разработкой второго беспилотного гоночного болида в своей истории. Организация ставит перед собой масштабную цель: оказаться в числе первых в мире студенческих команд и проектов, воспитать новое поколение инженеров и оставить свой след в истории. Гоночную технику собирают студенты, охватывая все стадии создания гоночного болида, организовав производство как настоящий бизнес-проект. Перед командой стоит задача не просто спроектировать машину, но и успешно выступить в гоночных соревнованиях, а также продумать бизнес-проект команды до мельчайших деталей и \"продать\" его жюри."
-	loc2 := "УЛК"
-	err = r.Save(nil, sm.MustNewActivity(
-		"Bauman Racing Team",
-		&desc2,
-		&loc2,
-		[]sm.User{
-			sm.MustNewUser("zhikhkirill", sm.Administrator),
-		},
-		[]sm.SkillType{sm.Engineering, sm.Social},
-		4,
-		[]*sm.Slot{
-			sm.MustNewSlot(timeWithMinutes(0), timeWithMinutes(15)),
-			sm.MustNewSlot(timeWithMinutes(15), timeWithMinutes(30)),
-			sm.MustNewSlot(timeWithMinutes(30), timeWithMinutes(45)),
-			sm.MustNewSlot(timeWithMinutes(45), timeWithMinutes(60)),
-		},
-	))
-	if err != nil {
-		panic(err)
-	}
-
-	return r
 }
 
 func (r *mockActivitiesRepository) Save(_ context.Context, activity *sm.Activity) error {

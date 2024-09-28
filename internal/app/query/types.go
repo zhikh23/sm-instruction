@@ -37,6 +37,7 @@ type Character struct {
 
 type Activity struct {
 	Name        string
+	FullName    string
 	Description *string
 	Location    *string
 	Admins      []User
@@ -137,6 +138,7 @@ func convertCharactersToApp(cs []*sm.Character) []Character {
 func convertActivityToApp(a *sm.Activity) Activity {
 	return Activity{
 		Name:        a.Name,
+		FullName:    a.FullName,
 		Description: a.Description,
 		Location:    a.Location,
 		Admins:      convertUsersToApp(a.Admins),

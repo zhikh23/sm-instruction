@@ -36,8 +36,8 @@ func (r *pgActivitiesRepository) Save(
 		var err error
 		if err = r.requireExecResult(tx.NamedExecContext(ctx,
 			`INSERT INTO
-					activities (name, description, location, skills, max_points)
-			 VALUES (:name, :description, :location, :skills, :max_points)`,
+					activities (name, full_name, description, location, skills, max_points)
+			 VALUES (:name, :full_name, :description, :location, :skills, :max_points)`,
 			marshallActivityToRow(activity),
 		)); pgutils.IsUniqueViolationError(err) {
 			return sm.ErrActivityAlreadyExists
@@ -178,7 +178,7 @@ func (r *pgActivitiesRepository) activity(
 
 	var activityRow activityRow
 	if err = sqlx.GetContext(ctx, qx, &activityRow,
-		`SELECT name, description, location, skills, max_points 
+		`SELECT name, full_name, description, location, skills, max_points 
 		 FROM   activities
 		 WHERE  name = $1`, activityName,
 	); err != nil {
@@ -214,6 +214,7 @@ func (r *pgActivitiesRepository) activity(
 
 	return sm.UnmarshallActivityFromDB(
 		activityRow.Name,
+		activityRow.FullName,
 		activityRow.Description,
 		activityRow.Location,
 		admins,
@@ -232,7 +233,7 @@ func (r *pgActivitiesRepository) activityByAdmin(
 
 	var activityRow activityRow
 	if err = sqlx.GetContext(ctx, qx, &activityRow,
-		`SELECT name, description, location, skills, max_points 
+		`SELECT name, full_name, description, location, skills, max_points 
 		 FROM   activities AS activity
 				LEFT JOIN admins AS admin 
 					   ON admin.activity_name = activity.name
@@ -269,6 +270,7 @@ func (r *pgActivitiesRepository) activityByAdmin(
 
 	return sm.UnmarshallActivityFromDB(
 		activityRow.Name,
+		activityRow.FullName,
 		activityRow.Description,
 		activityRow.Location,
 		admins,
@@ -286,7 +288,7 @@ func (r *pgActivitiesRepository) activities(
 
 	var activityRows []activityRow
 	if err = sqlx.SelectContext(ctx, qx, &activityRows,
-		`SELECT name, description, location, skills, max_points 
+		`SELECT name, full_name, description, location, skills, max_points
 		 FROM   activities AS activity
 		 WHERE description IS NOT NULL OR location IS NOT NULL
 		 ORDER BY name`,
@@ -329,6 +331,7 @@ func (r *pgActivitiesRepository) activities(
 
 		activity, err := sm.UnmarshallActivityFromDB(
 			activityRow.Name,
+			activityRow.FullName,
 			activityRow.Description,
 			activityRow.Location,
 			admins,
@@ -352,7 +355,7 @@ func (r *pgActivitiesRepository) availableActivities(
 
 	var activityRows []activityRow
 	if err = sqlx.SelectContext(ctx, qx, &activityRows,
-		`SELECT name, description, location, skills, max_points 
+		`SELECT name, full_name, description, location, skills, max_points 
 		 FROM   activities AS activity
 		 WHERE  location IS NOT NULL`,
 	); err != nil {
@@ -394,6 +397,7 @@ func (r *pgActivitiesRepository) availableActivities(
 
 		activity, err := sm.UnmarshallActivityFromDB(
 			activityRow.Name,
+			activityRow.FullName,
 			activityRow.Description,
 			activityRow.Location,
 			admins,
@@ -417,7 +421,7 @@ func (r *pgActivitiesRepository) additionalActivities(
 
 	var activityRows []activityRow
 	if err = sqlx.SelectContext(ctx, qx, &activityRows,
-		`SELECT name, description, location, skills, max_points 
+		`SELECT name, full_name, description, location, skills, max_points 
 		 FROM   activities AS activity
 		 WHERE  location IS NULL AND description IS NOT NULL`,
 	); err != nil {
@@ -459,6 +463,7 @@ func (r *pgActivitiesRepository) additionalActivities(
 
 		activity, err := sm.UnmarshallActivityFromDB(
 			activityRow.Name,
+			activityRow.FullName,
 			activityRow.Description,
 			activityRow.Location,
 			admins,
@@ -510,6 +515,7 @@ func (r *pgActivitiesRepository) requireExecResult(res sql.Result, err error) er
 
 type activityRow struct {
 	Name        string         `db:"name"`
+	FullName    string         `db:"full_name"`
 	Description *string        `db:"description"`
 	Location    *string        `db:"location"`
 	Skills      pq.StringArray `db:"skills"`
@@ -523,6 +529,7 @@ func marshallActivityToRow(a *sm.Activity) activityRow {
 	}
 	return activityRow{
 		Name:        a.Name,
+		FullName:    a.FullName,
 		Description: a.Description,
 		Location:    a.Location,
 		Skills:      pqSkills,

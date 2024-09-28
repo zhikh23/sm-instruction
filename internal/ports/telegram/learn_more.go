@@ -33,6 +33,10 @@ func (p *Port) learnMoreSendActivities(c telebot.Context, s fsm.Context) error {
 		buttons[i] = activity.Name
 	}
 
+	if _, err = learnMoreSticker.Send(c.Bot(), c.Recipient(), nil); err != nil {
+		return err
+	}
+
 	if err = s.SetState(ctx, learnMoreHandleActivityNameState); err != nil {
 		return err
 	}
@@ -73,7 +77,7 @@ func (p *Port) learnMoreSendActivity(c telebot.Context, s fsm.Context) error {
 		return err
 	}
 
-	msg := fmt.Sprintf("<b>%s</b>\n", activityName)
+	msg := fmt.Sprintf("<b>%s</b>\n", activity.FullName)
 
 	if activity.Location != nil {
 		msg = buildMessage("\n",

@@ -27,6 +27,7 @@ func (p *Port) sendCharacterTimetable(c telebot.Context, s fsm.Context) error {
 	msg := buildMessage("\n",
 		"<b>РАСПИСАНИЕ</b>\n",
 		fmt.Sprintf("Для группы %s:", groupName),
+		"",
 	)
 	for _, slot := range char.Slots {
 		if slot.Whom == nil {
@@ -34,7 +35,6 @@ func (p *Port) sendCharacterTimetable(c telebot.Context, s fsm.Context) error {
 		}
 		msg = buildMessage("\n",
 			msg,
-			"",
 			fmt.Sprintf(
 				"<code>%s-%s</code> | %s",
 				slot.Start.Format(sm.TimeFormat), slot.End.Format(sm.TimeFormat), *slot.Whom,

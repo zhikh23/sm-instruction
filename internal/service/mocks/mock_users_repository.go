@@ -13,13 +13,9 @@ type mockUsersRepository struct {
 }
 
 func NewMockUsersRepository() sm.UsersRepository {
-	r := &mockUsersRepository{
+	return &mockUsersRepository{
 		m: map[string]sm.User{},
 	}
-
-	_ = r.Save(nil, sm.MustNewUser("zhikhkirill", sm.Participant))
-
-	return r
 }
 
 func (r *mockUsersRepository) Save(_ context.Context, user sm.User) error {
