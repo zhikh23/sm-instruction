@@ -69,6 +69,12 @@ func (p *Port) RegisterFSMManager(m *fsm.Manager, dp fsm.Dispatcher) {
 	))
 
 	dp.Dispatch(m.New(
+		fsmopt.OnStates(participantMenuHandle),
+		fsmopt.On(participantMenuRatingButton),
+		fsmopt.Do(p.sendParticipantRating),
+	))
+
+	dp.Dispatch(m.New(
 		fsmopt.OnStates(adminMenuHandle),
 		fsmopt.On(adminMenuTimetableButton),
 		fsmopt.Do(p.sendAdminTimetable),

@@ -58,6 +58,22 @@ func (r *pgCharactersRepository) Character(
 	return char, nil
 }
 
+func (r *pgCharactersRepository) Characters(
+	ctx context.Context,
+) ([]*sm.Character, error) {
+	var chars []*sm.Character
+	var err error
+	if err = pgutils.RunTx(ctx, r.db, func(tx *sqlx.Tx) error {
+		chars, err = r.characters(ctx, tx)
+		return err
+	}); errors.Is(err, sql.ErrNoRows) {
+		return nil, sm.ErrCharacterNotFound
+	} else if err != nil {
+		return nil, err
+	}
+	return chars, nil
+}
+
 func (r *pgCharactersRepository) CharacterByUsername(
 	ctx context.Context,
 	username string,
@@ -185,6 +201,65 @@ func (r *pgCharactersRepository) character(
 		slots,
 		grades,
 	)
+}
+
+func (r *pgCharactersRepository) characters(
+	ctx context.Context,
+	qx sqlx.QueryerContext,
+) ([]*sm.Character, error) {
+	var err error
+
+	var charactersRows []characterRow
+	if err = sqlx.SelectContext(ctx, qx, &charactersRows,
+		`SELECT group_name, username, started_at
+   		 FROM characters`,
+	); err != nil {
+		return nil, err
+	}
+
+	chars := make([]*sm.Character, len(charactersRows))
+	for i, characterRow := range charactersRows {
+		var characterSlotsRows []characterSlotRow
+		if err = sqlx.SelectContext(ctx, qx, &characterSlotsRows,
+			`SELECT   group_name, start, end_, activity_name
+		 FROM     character_slots
+		 WHERE    group_name = $1
+		 ORDER BY start`, characterRow.GroupName,
+		); err != nil {
+			return nil, err
+		}
+		slots, err := unmarshallCharacterSlotsFromRows(characterSlotsRows)
+		if err != nil {
+			return nil, err
+		}
+
+		var characterGradesRows []characterGradeRow
+		if err = sqlx.SelectContext(ctx, qx, &characterGradesRows,
+			`SELECT   group_name, skill_type, points, activity_name, time
+		 FROM     grades
+		 WHERE    group_name = $1`, characterRow.GroupName,
+		); err != nil {
+			return nil, err
+		}
+		grades, err := unmarshallCharacterGradesFromRows(characterGradesRows)
+		if err != nil {
+			return nil, err
+		}
+
+		char, err := sm.UnmarshallCharacterFromDB(
+			characterRow.GroupName,
+			characterRow.Username,
+			timeLocalOrNil(characterRow.StartedAt),
+			slots,
+			grades,
+		)
+		if err != nil {
+			return nil, err
+		}
+		chars[i] = char
+	}
+
+	return chars, nil
 }
 
 func (r *pgCharactersRepository) characterByUsername(

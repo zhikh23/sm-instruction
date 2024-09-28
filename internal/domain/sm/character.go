@@ -162,19 +162,26 @@ func (c *Character) IsStarted() bool {
 	return c.StartedAt != nil
 }
 
-func (c *Character) EndTime() time.Time {
+func (c *Character) EndTime() *time.Time {
 	if !c.IsStarted() {
-		return time.Now().Add(InstructionDuration)
+		return nil
 	}
 
-	return c.StartedAt.Add(InstructionDuration)
+	v := c.StartedAt.Add(InstructionDuration)
+
+	return &v
 }
 
+var ErrCharacterNotStarted = errors.New("character not started")
 var ErrSlotNotFound = errors.New("slot not found")
 var ErrSlotIsTooLate = errors.New("slot is too late")
 
 func (c *Character) TakeSlot(start time.Time, activityName string) error {
-	if start.After(c.EndTime()) {
+	if !c.IsStarted() {
+		return ErrCharacterNotStarted
+	}
+
+	if start.After(*c.EndTime()) {
 		return ErrSlotIsTooLate
 	}
 

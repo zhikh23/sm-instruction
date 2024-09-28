@@ -32,8 +32,8 @@ func (p *Port) sendProfile(c telebot.Context, s fsm.Context) error {
 		fmt.Sprintf("Учебная группа: <code>%s</code>\n", char.GroupName),
 		"",
 	)
-	if time.Now().Before(char.End) {
-		remains := char.End.Sub(char.Start)
+	if time.Now().Before(*char.End) {
+		remains := char.End.Sub(*char.Start)
 		msg += buildMessage("\n",
 			fmt.Sprintf("Начало Инструкции: %s", char.Start.Format(sm.TimeFormat)),
 			fmt.Sprintf("Конец Инструкции: %s", char.End.Format(sm.TimeFormat)),

@@ -60,6 +60,7 @@ func newApplication(
 			GetUser:             query.NewGetUserHandler(users, log, metricsClient),
 			CharacterByUsername: query.NewCharacterByUsernameHandler(chars, log, metricsClient),
 			GetCharacter:        query.NewGetCharacterHandler(chars, log, metricsClient),
+			Rating:              query.NewRatingHandler(chars, log, metricsClient),
 			GetActivity:         query.NewGetActivityHandler(activities, log, metricsClient),
 			AdminActivity:       query.NewAdminActivtyHandler(activities, log, metricsClient),
 			AvailableActivities: query.NewAvailableActivitiesHandler(chars, activities, log, metricsClient),

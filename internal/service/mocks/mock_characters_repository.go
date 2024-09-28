@@ -54,6 +54,18 @@ func (r *mockCharactersRepository) Character(_ context.Context, groupName string
 	return &char, nil
 }
 
+func (r *mockCharactersRepository) Characters(_ context.Context) ([]*sm.Character, error) {
+	r.RLock()
+	defer r.RUnlock()
+
+	chars := make([]*sm.Character, 0, len(r.m))
+	for _, char := range r.m {
+		chars = append(chars, &char)
+	}
+
+	return chars, nil
+}
+
 func (r *mockCharactersRepository) CharacterByUsername(_ context.Context, username string) (*sm.Character, error) {
 	r.RLock()
 	defer r.RUnlock()
