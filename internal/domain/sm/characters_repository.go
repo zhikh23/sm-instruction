@@ -18,3 +18,7 @@ type CharactersRepository interface {
 		updateFn func(innerCtx context.Context, char *Character) error,
 	) error
 }
+
+type CharactersProvider interface {
+	Characters(ctx context.Context) ([]*Character, error)
+}

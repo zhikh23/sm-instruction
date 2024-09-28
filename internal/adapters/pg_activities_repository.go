@@ -45,22 +45,26 @@ func (r *pgActivitiesRepository) Save(
 			return err
 		}
 
-		if err = r.requireExecResult(tx.NamedExecContext(ctx,
-			`INSERT INTO
+		if len(activity.Admins) > 0 {
+			if err = r.requireExecResult(tx.NamedExecContext(ctx,
+				`INSERT INTO
 				admins (activity_name, username)
 			 VALUES (:activity_name, :username)`,
-			marshallAdminsToRows(activity.Name, activity.Admins),
-		)); err != nil {
-			return err
+				marshallAdminsToRows(activity.Name, activity.Admins),
+			)); err != nil {
+				return err
+			}
 		}
 
-		if err = r.requireExecResult(tx.NamedExecContext(ctx,
-			`INSERT INTO
-				activity_slots (activity_name, start, end_, group_name) 
-			 VALUES (:activity_name, :start, :end_, :group_name)`,
-			marshallActivitySlotsToRows(activity.Name, activity.Slots()),
-		)); err != nil {
-			return err
+		if len(activity.Slots()) > 0 {
+			if err = r.requireExecResult(tx.NamedExecContext(ctx,
+				`INSERT INTO
+					activity_slots (activity_name, start, end_, group_name) 
+			 	 VALUES (:activity_name, :start, :end_, :group_name)`,
+				marshallActivitySlotsToRows(activity.Name, activity.Slots()),
+			)); err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -101,13 +105,13 @@ func (r *pgActivitiesRepository) ActivityByAdmin(
 	return res, nil
 }
 
-func (r *pgActivitiesRepository) ActivitiesWithLocations(
+func (r *pgActivitiesRepository) AvailableActivities(
 	ctx context.Context,
 ) ([]*sm.Activity, error) {
 	var res []*sm.Activity
 	var err error
 	if err = pgutils.RunTx(ctx, r.db, func(tx *sqlx.Tx) error {
-		res, err = r.activitiesWithLocations(ctx, tx)
+		res, err = r.availableActivities(ctx, tx)
 		return err
 	}); err != nil {
 		return nil, err
@@ -122,7 +126,9 @@ func (r *pgActivitiesRepository) UpdateSlots(
 ) error {
 	return pgutils.RunTx(ctx, r.db, func(tx *sqlx.Tx) error {
 		activity, err := r.activity(ctx, tx, activityUUID)
-		if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return sm.ErrActivityNotFound
+		} else if err != nil {
 			return err
 		}
 
@@ -244,7 +250,7 @@ func (r *pgActivitiesRepository) activityByAdmin(
 	)
 }
 
-func (r *pgActivitiesRepository) activitiesWithLocations(
+func (r *pgActivitiesRepository) availableActivities(
 	ctx context.Context,
 	qx sqlx.QueryerContext,
 ) ([]*sm.Activity, error) {
@@ -253,7 +259,7 @@ func (r *pgActivitiesRepository) activitiesWithLocations(
 	var activityRows []activityRow
 	if err = sqlx.SelectContext(ctx, qx, &activityRows,
 		`SELECT name, description, location, skills, max_points 
-		 FROM   activities
+		 FROM   activities AS activity
 		 WHERE  location IS NOT NULL`,
 	); err != nil {
 		return nil, err
@@ -261,19 +267,6 @@ func (r *pgActivitiesRepository) activitiesWithLocations(
 
 	activities := make([]*sm.Activity, 0, len(activityRows))
 	for _, activityRow := range activityRows {
-		var adminsRows []adminRow
-		if err = sqlx.SelectContext(ctx, qx, &adminsRows,
-			`SELECT activity_name, username 
-			 FROM admins 
-			 WHERE activity_name = $1`, activityRow.Name,
-		); err != nil {
-			return nil, err
-		}
-		admins, err := unmarshallAdminsFromRows(adminsRows)
-		if err != nil {
-			return nil, err
-		}
-
 		var slotsRows []activitySlotRow
 		if err = sqlx.SelectContext(ctx, qx, &slotsRows,
 			`SELECT activity_name, start, end_, group_name
@@ -283,7 +276,24 @@ func (r *pgActivitiesRepository) activitiesWithLocations(
 		); err != nil {
 			return nil, err
 		}
+		if len(slotsRows) == 0 {
+			continue
+		}
+
 		slots, err := unmarshallActivitySlotsFromRows(slotsRows)
+		if err != nil {
+			return nil, err
+		}
+
+		var adminsRows []adminRow
+		if err = sqlx.SelectContext(ctx, qx, &adminsRows,
+			`SELECT activity_name, username 
+			 FROM admins 
+			 WHERE activity_name = $1`, activityRow.Name,
+		); err != nil {
+			return nil, err
+		}
+		admins, err := unmarshallAdminsFromRows(adminsRows)
 		if err != nil {
 			return nil, err
 		}
@@ -314,7 +324,7 @@ func (r *pgActivitiesRepository) updateSlots(
 	for _, slot := range activity.Slots() {
 		if err = r.requireExecResult(ex.ExecContext(ctx,
 			`UPDATE activity_slots SET group_name = $3 WHERE activity_name = $1 AND start = $2`,
-			activity.Name, slot.Start, slot.Whom,
+			activity.Name, slot.Start.UTC(), slot.Whom,
 		)); err != nil {
 			return err
 		}

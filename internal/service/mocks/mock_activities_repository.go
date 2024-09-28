@@ -110,7 +110,7 @@ func (r *mockActivitiesRepository) ActivityByAdmin(_ context.Context, adminUsern
 	return nil, sm.ErrActivityNotFound
 }
 
-func (r *mockActivitiesRepository) ActivitiesWithLocations(_ context.Context) ([]*sm.Activity, error) {
+func (r *mockActivitiesRepository) AvailableActivities(_ context.Context) ([]*sm.Activity, error) {
 	r.RLock()
 	defer r.RUnlock()
 

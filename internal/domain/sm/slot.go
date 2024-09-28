@@ -115,6 +115,7 @@ func SlotsIntersection(a, b []*Slot) []*Slot {
 		for j := range b {
 			if a[i].Start == b[j].Start {
 				res = append(res, a[i])
+				break
 			}
 		}
 	}

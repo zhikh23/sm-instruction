@@ -26,3 +26,6 @@ go.work.sum
 
 # .idea files
 .idea
+
+# Credentials
+google_api_credentials.json

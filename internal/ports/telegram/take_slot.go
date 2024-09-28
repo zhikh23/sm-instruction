@@ -19,7 +19,13 @@ const takeSlotActivityName = "takeSlotActivityName"
 func (p *Port) takeSlotSendChooseActivity(c telebot.Context, s fsm.Context) error {
 	ctx := context.Background()
 
-	activities, err := p.app.Queries.AvailableActivities.Handle(ctx, query.AvailableActivities{})
+	groupName, err := extractGroupName(ctx, s)
+	if err != nil {
+		return err
+	}
+	activities, err := p.app.Queries.AvailableActivities.Handle(ctx, query.AvailableActivities{
+		GroupName: groupName,
+	})
 	if err != nil {
 		return err
 	}

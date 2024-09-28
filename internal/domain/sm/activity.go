@@ -40,8 +40,8 @@ func NewActivity(
 		return nil, commonerrs.NewInvalidInputError("expected not empty name or nil")
 	}
 
-	if len(admins) == 0 {
-		return nil, commonerrs.NewInvalidInputError("expected not empty admins")
+	if admins == nil {
+		admins = make([]User, 0)
 	}
 
 	for _, admin := range admins {
@@ -52,8 +52,8 @@ func NewActivity(
 		}
 	}
 
-	if len(skills) == 0 {
-		return nil, commonerrs.NewInvalidInputError("expected not empty skills")
+	if skills == nil {
+		skills = make([]SkillType, 0)
 	}
 
 	for _, skill := range skills {
@@ -62,8 +62,8 @@ func NewActivity(
 		}
 	}
 
-	if maxPoints <= 0 {
-		return nil, commonerrs.NewInvalidInputError("expected positive max points")
+	if maxPoints < 0 {
+		return nil, commonerrs.NewInvalidInputError("expected non-negative max points")
 	}
 
 	if slots == nil {
@@ -123,16 +123,8 @@ func UnmarshallActivityFromDB(
 		return nil, commonerrs.NewInvalidInputError("expected not empty name or nil")
 	}
 
-	if len(admins) == 0 {
-		return nil, commonerrs.NewInvalidInputError("expected not empty admins")
-	}
-
-	if len(skillsStr) == 0 {
-		return nil, commonerrs.NewInvalidInputError("expected not empty skills")
-	}
-
-	if maxPoints == 0 {
-		return nil, commonerrs.NewInvalidInputError("expected not empty max points")
+	if admins == nil {
+		admins = make([]User, 0)
 	}
 
 	skills := make([]SkillType, len(skillsStr))
@@ -150,11 +142,13 @@ func UnmarshallActivityFromDB(
 	}
 
 	return &Activity{
-		Name:      name,
-		Admins:    admins,
-		Skills:    skills,
-		MaxPoints: maxPoints,
-		slots:     mappedSlots,
+		Name:        name,
+		Description: description,
+		Location:    location,
+		Admins:      admins,
+		Skills:      skills,
+		MaxPoints:   maxPoints,
+		slots:       mappedSlots,
 	}, nil
 }
 
@@ -205,4 +199,24 @@ func (a *Activity) AvailableSlots() []*Slot {
 	return funcs.Filter(a.Slots(), func(slot *Slot) bool {
 		return slot.IsAvailable()
 	})
+}
+
+func (a *Activity) HasTaken(groupName string) bool {
+	for _, slot := range a.Slots() {
+		if !slot.IsAvailable() && *slot.Whom == groupName {
+			return true
+		}
+	}
+	return false
+}
+
+func mapSlots(ss []*Slot) (map[time.Time]*Slot, error) {
+	slots := make(map[time.Time]*Slot)
+	for _, s := range ss {
+		if _, ok := slots[s.Start]; ok {
+			return nil, ErrSlotAlreadyExists
+		}
+		slots[s.Start] = s
+	}
+	return slots, nil
 }

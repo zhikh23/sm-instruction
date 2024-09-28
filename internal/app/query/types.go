@@ -96,7 +96,7 @@ func convertCharacterToApp(c *sm.Character) Character {
 		GroupName: c.GroupName,
 		Skills:    convertSkillsToApp(c.Skills),
 		Rating:    c.Rating(),
-		Slots:     convertSlotsToApp(c.Slots()),
+		Slots:     convertSlotsToApp(c.Slots),
 	}
 }
 

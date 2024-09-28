@@ -82,7 +82,9 @@ func (r *pgCharactersRepository) Update(
 ) error {
 	return pgutils.RunTx(ctx, r.db, func(tx *sqlx.Tx) error {
 		char, err := r.character(ctx, tx, groupName)
-		if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return sm.ErrCharacterNotFound
+		} else if err != nil {
 			return err
 		}
 
@@ -123,7 +125,7 @@ func (r *pgCharactersRepository) save(
 		`INSERT INTO
 			character_slots (group_name, start, end_, activity_name) 
 		 VALUES (:group_name, :start, :end_, :activity_name)`,
-		marshallCharacterSlotsToRows(character.GroupName, character.Slots()),
+		marshallCharacterSlotsToRows(character.GroupName, character.Slots),
 	)); err != nil {
 		return err
 	}
@@ -265,7 +267,7 @@ func (r *pgCharactersRepository) update(
 	}
 
 	if err = r.requireExecResult(ex.ExecContext(ctx,
-		`DELETE FROM character_skills WHERE group_name = $1`, character.GroupName,
+		`DELETE FROM character_slots WHERE group_name = $1`, character.GroupName,
 	)); err != nil {
 		return err
 	}
@@ -274,7 +276,7 @@ func (r *pgCharactersRepository) update(
 		`INSERT INTO
 			character_slots (group_name, start, end_, activity_name) 
 		 VALUES (:group_name, :start, :end_, :activity_name)`,
-		marshallCharacterSlotsToRows(character.GroupName, character.Slots()),
+		marshallCharacterSlotsToRows(character.GroupName, character.Slots),
 	)); err != nil {
 		return err
 	}
@@ -372,7 +374,7 @@ func marshallCharacterSlotsToRows(groupName string, ss []*sm.Slot) []characterSl
 }
 
 func unmarshallCharacterSlotFromRow(a characterSlotRow) (*sm.Slot, error) {
-	return sm.UnmarshallSlotFromDB(a.Start, a.End, a.ActivityName)
+	return sm.UnmarshallSlotFromDB(a.Start.Local(), a.End.Local(), a.ActivityName)
 }
 
 func unmarshallCharacterSlotsFromRows(cs []characterSlotRow) ([]*sm.Slot, error) {

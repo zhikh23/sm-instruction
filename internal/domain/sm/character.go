@@ -9,12 +9,14 @@ import (
 	"github.com/zhikh23/sm-instruction/internal/common/commonerrs"
 )
 
+var ErrSlotAlreadyExists = errors.New("slot already exists")
+
 type Character struct {
 	GroupName string
 	Username  string
 	Skills    map[SkillType]int
 	StartedAt *time.Time
-	slots     map[time.Time]*Slot
+	Slots     []*Slot
 }
 
 func NewCharacter(
@@ -39,9 +41,12 @@ func NewCharacter(
 		skills[s] = 0
 	}
 
-	mappedSlots, err := mapSlots(slots)
-	if err != nil {
-		return nil, err
+	times := make(map[time.Time]bool)
+	for _, slot := range slots {
+		if contains := times[slot.Start]; contains {
+			return nil, ErrSlotAlreadyExists
+		}
+		times[slot.Start] = true
 	}
 
 	return &Character{
@@ -49,7 +54,7 @@ func NewCharacter(
 		Username:  username,
 		Skills:    skills,
 		StartedAt: nil,
-		slots:     mappedSlots,
+		Slots:     slots,
 	}, nil
 }
 
@@ -88,17 +93,12 @@ func UnmarshallCharacterFromDB(
 		slots = make([]*Slot, 0)
 	}
 
-	mappedSlots, err := mapSlots(slots)
-	if err != nil {
-		return nil, err
-	}
-
 	return &Character{
 		Username:  username,
 		GroupName: groupName,
 		Skills:    skills,
 		StartedAt: startedAt,
-		slots:     mappedSlots,
+		Slots:     slots,
 	}, nil
 }
 
@@ -122,20 +122,12 @@ func (c *Character) Rating() float64 {
 	return c.ratingFactor() * float64(c.ratingBase())
 }
 
-func (c *Character) Slots() []*Slot {
-	slots := make([]*Slot, 0, len(c.slots))
-	for _, slot := range c.slots {
-		slots = append(slots, slot)
-	}
-	return slots
-}
-
 func (c *Character) IncSkill(t SkillType, score int) {
 	c.Skills[t] += score
 }
 
 func (c *Character) AvailableSlots() []*Slot {
-	return filter(c.Slots(), slotIsAvailable)
+	return filter(c.Slots, slotIsAvailable)
 }
 
 var ErrAlreadyStarted = errors.New("character already started")
@@ -154,8 +146,7 @@ func (c *Character) Start() error {
 var ErrSlotNotFound = errors.New("slot not found")
 
 func (c *Character) TakeSlot(start time.Time, activityName string) error {
-	fmt.Println(c.slots)
-	slot, ok := c.slots[start]
+	slot, ok := c.slotByTime(start)
 	if !ok {
 		return ErrSlotNotFound
 	}
@@ -164,7 +155,7 @@ func (c *Character) TakeSlot(start time.Time, activityName string) error {
 }
 
 func (c *Character) FreeSlot(start time.Time) error {
-	slot, ok := c.slots[start]
+	slot, ok := c.slotByTime(start)
 	if !ok {
 		return ErrSlotNotFound
 	}
@@ -172,17 +163,13 @@ func (c *Character) FreeSlot(start time.Time) error {
 	return slot.Free()
 }
 
-var ErrSlotAlreadyExists = errors.New("slot already exists")
-
-func mapSlots(slots []*Slot) (map[time.Time]*Slot, error) {
-	m := make(map[time.Time]*Slot)
-	for _, slot := range slots {
-		if _, ok := m[slot.Start]; ok {
-			return nil, ErrSlotAlreadyExists
+func (c *Character) slotByTime(start time.Time) (*Slot, bool) {
+	for _, slot := range c.Slots {
+		if slot.Start.Equal(start) {
+			return slot, true
 		}
-		m[slot.Start] = slot
 	}
-	return m, nil
+	return nil, false
 }
 
 func (c *Character) ratingBase() int {

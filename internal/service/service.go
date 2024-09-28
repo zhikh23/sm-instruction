@@ -62,7 +62,7 @@ func newApplication(
 			GetCharacter:        query.NewGetCharacterHandler(chars, log, metricsClient),
 			GetActivity:         query.NewGetActivityHandler(activities, log, metricsClient),
 			AdminActivity:       query.NewAdminActivtyHandler(activities, log, metricsClient),
-			AvailableActivities: query.NewAvailableActivitiesHandler(activities, log, metricsClient),
+			AvailableActivities: query.NewAvailableActivitiesHandler(chars, activities, log, metricsClient),
 			AvailableSlots:      query.NewAvailableSlotsHandler(chars, activities, log, metricsClient),
 		},
 	}

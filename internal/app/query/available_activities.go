@@ -2,21 +2,26 @@ package query
 
 import (
 	"context"
+	"github.com/zhikh23/sm-instruction/pkg/funcs"
 	"log/slog"
 
 	"github.com/zhikh23/sm-instruction/internal/common/decorator"
 	"github.com/zhikh23/sm-instruction/internal/domain/sm"
 )
 
-type AvailableActivities struct{}
+type AvailableActivities struct {
+	GroupName string
+}
 
 type AvailableActivitiesHandler decorator.QueryHandler[AvailableActivities, []ActivityWithLocation]
 
 type availableActivitiesHandler struct {
+	chars      sm.CharactersRepository
 	activities sm.ActivitiesRepository
 }
 
 func NewAvailableActivitiesHandler(
+	chars sm.CharactersRepository,
 	activities sm.ActivitiesRepository,
 	log *slog.Logger,
 	metricsClient decorator.MetricsClient,
@@ -26,17 +31,27 @@ func NewAvailableActivitiesHandler(
 	}
 
 	return decorator.ApplyQueryDecorators[AvailableActivities, []ActivityWithLocation](
-		&availableActivitiesHandler{activities},
+		&availableActivitiesHandler{chars, activities},
 		log, metricsClient,
 	)
 }
 
 func (h *availableActivitiesHandler) Handle(
-	ctx context.Context, _ AvailableActivities,
+	ctx context.Context, q AvailableActivities,
 ) ([]ActivityWithLocation, error) {
-	activities, err := h.activities.ActivitiesWithLocations(ctx)
+	char, err := h.chars.Character(ctx, q.GroupName)
 	if err != nil {
 		return nil, err
 	}
+
+	activities, err := h.activities.AvailableActivities(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	activities = funcs.Filter(activities, func(act *sm.Activity) bool {
+		return len(sm.SlotsIntersection(act.AvailableSlots(), char.AvailableSlots())) > 0 && !act.HasTaken(q.GroupName)
+	})
+
 	return convertActivitiesWithLocations(activities), nil
 }
