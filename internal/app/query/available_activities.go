@@ -13,7 +13,7 @@ type AvailableActivities struct {
 	GroupName string
 }
 
-type AvailableActivitiesHandler decorator.QueryHandler[AvailableActivities, []ActivityWithLocation]
+type AvailableActivitiesHandler decorator.QueryHandler[AvailableActivities, []Activity]
 
 type availableActivitiesHandler struct {
 	chars      sm.CharactersRepository
@@ -30,7 +30,7 @@ func NewAvailableActivitiesHandler(
 		panic("activities is nil")
 	}
 
-	return decorator.ApplyQueryDecorators[AvailableActivities, []ActivityWithLocation](
+	return decorator.ApplyQueryDecorators[AvailableActivities, []Activity](
 		&availableActivitiesHandler{chars, activities},
 		log, metricsClient,
 	)
@@ -38,7 +38,7 @@ func NewAvailableActivitiesHandler(
 
 func (h *availableActivitiesHandler) Handle(
 	ctx context.Context, q AvailableActivities,
-) ([]ActivityWithLocation, error) {
+) ([]Activity, error) {
 	char, err := h.chars.Character(ctx, q.GroupName)
 	if err != nil {
 		return nil, err
@@ -53,5 +53,5 @@ func (h *availableActivitiesHandler) Handle(
 		return len(sm.SlotsIntersection(act.AvailableSlots(), char.AvailableSlots())) > 0 && !act.HasTaken(q.GroupName)
 	})
 
-	return convertActivitiesWithLocations(activities), nil
+	return convertActivitiesToApp(activities), nil
 }

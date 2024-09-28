@@ -50,7 +50,6 @@ func (h *availableSlotsHandler) Handle(ctx context.Context, query AvailableSlots
 	charSlots := char.AvailableSlots()
 
 	availableSlots := sm.SlotsIntersection(activitySlots, charSlots)
-	availableSlots = make([]*sm.Slot, 0)
 	//	availableSlots = funcs.Filter(availableSlots, func(slot *sm.Slot) bool {
 	//		return slot.Start.Before(char.EndTime())
 	//	})

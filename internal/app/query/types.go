@@ -36,17 +36,13 @@ type Character struct {
 }
 
 type Activity struct {
-	Name      string
-	Admins    []User
-	Skills    []string
-	MaxPoints int
-	Slots     []Slot
-}
-
-type ActivityWithLocation struct {
-	Activity
-	Description string
-	Location    string
+	Name        string
+	Description *string
+	Location    *string
+	Admins      []User
+	Skills      []string
+	MaxPoints   int
+	Slots       []Slot
 }
 
 func convertUserToApp(u sm.User) User {
@@ -140,26 +136,20 @@ func convertCharactersToApp(cs []*sm.Character) []Character {
 
 func convertActivityToApp(a *sm.Activity) Activity {
 	return Activity{
-		Name:      a.Name,
-		Admins:    convertUsersToApp(a.Admins),
-		Skills:    convertSkillTypesToApp(a.Skills),
-		MaxPoints: a.MaxPoints,
-		Slots:     convertSlotsToApp(a.Slots()),
+		Name:        a.Name,
+		Description: a.Description,
+		Location:    a.Location,
+		Admins:      convertUsersToApp(a.Admins),
+		Skills:      convertSkillTypesToApp(a.Skills),
+		MaxPoints:   a.MaxPoints,
+		Slots:       convertSlotsToApp(a.Slots()),
 	}
 }
 
-func convertActivityWithLocation(a *sm.Activity) ActivityWithLocation {
-	return ActivityWithLocation{
-		Activity:    convertActivityToApp(a),
-		Description: *a.Description,
-		Location:    *a.Location,
-	}
-}
-
-func convertActivitiesWithLocations(a []*sm.Activity) []ActivityWithLocation {
-	res := make([]ActivityWithLocation, len(a))
-	for i, act := range a {
-		res[i] = convertActivityWithLocation(act)
+func convertActivitiesToApp(as []*sm.Activity) []Activity {
+	res := make([]Activity, len(as))
+	for i, a := range as {
+		res[i] = convertActivityToApp(a)
 	}
 	return res
 }

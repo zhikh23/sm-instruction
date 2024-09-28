@@ -57,14 +57,15 @@ func newApplication(
 			TakeSlot:         command.NewTakeSlotHandler(chars, activities, log, metricsClient),
 		},
 		Queries: app.Queries{
-			GetUser:             query.NewGetUserHandler(users, log, metricsClient),
-			CharacterByUsername: query.NewCharacterByUsernameHandler(chars, log, metricsClient),
-			GetCharacter:        query.NewGetCharacterHandler(chars, log, metricsClient),
-			Rating:              query.NewRatingHandler(chars, log, metricsClient),
-			GetActivity:         query.NewGetActivityHandler(activities, log, metricsClient),
-			AdminActivity:       query.NewAdminActivtyHandler(activities, log, metricsClient),
-			AvailableActivities: query.NewAvailableActivitiesHandler(chars, activities, log, metricsClient),
-			AvailableSlots:      query.NewAvailableSlotsHandler(chars, activities, log, metricsClient),
+			GetUser:              query.NewGetUserHandler(users, log, metricsClient),
+			CharacterByUsername:  query.NewCharacterByUsernameHandler(chars, log, metricsClient),
+			GetCharacter:         query.NewGetCharacterHandler(chars, log, metricsClient),
+			Rating:               query.NewRatingHandler(chars, log, metricsClient),
+			GetActivity:          query.NewGetActivityHandler(activities, log, metricsClient),
+			AdminActivity:        query.NewAdminActivtyHandler(activities, log, metricsClient),
+			AvailableActivities:  query.NewAvailableActivitiesHandler(chars, activities, log, metricsClient),
+			AdditionalActivities: query.NewAdditionalActivitiesHandler(activities, log, metricsClient),
+			AvailableSlots:       query.NewAvailableSlotsHandler(chars, activities, log, metricsClient),
 		},
 	}
 }

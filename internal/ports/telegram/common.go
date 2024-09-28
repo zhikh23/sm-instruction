@@ -47,11 +47,12 @@ func createMarkupWithButtonsFromStrings(strings []string, width int) *telebot.Re
 }
 
 const (
-	participantMenuProfileButton   = "Профиль"
-	participantMenuTimetableButton = "Расписание"
-	participantMenuTakeSlotButton  = "Забронировать точку"
-	participantMenuGradesButton    = "Успеваемость"
-	participantMenuRatingButton    = "Сессия"
+	participantMenuProfileButton    = "Профиль"
+	participantMenuTimetableButton  = "Расписание"
+	participantMenuTakeSlotButton   = "Забронировать точку"
+	participantMenuGradesButton     = "Успеваемость"
+	participantMenuRatingButton     = "Сессия"
+	participantMenuAdditionalButton = "Дополнительные задания"
 
 	adminMenuAwardCharacterButton = "Начислить баллы"
 	adminMenuTimetableButton      = "Расписание"
@@ -72,6 +73,7 @@ func (p *Port) sendParticipantMenu(c telebot.Context, s fsm.Context) error {
 			participantMenuTakeSlotButton,
 			participantMenuGradesButton,
 			participantMenuRatingButton,
+			participantMenuAdditionalButton,
 		}, 2),
 	)
 }

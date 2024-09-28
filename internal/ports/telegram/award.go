@@ -81,7 +81,7 @@ func (p *Port) awardSendCharacterNotFound(c telebot.Context, _ fsm.Context) erro
 		"Проверь правильность вводимого формата:",
 		"<code>СМ1-11Б</code>",
 		"Попробуй ещё раз.",
-	))
+	), telebot.ModeHTML)
 }
 
 func (p *Port) awardHandleSkill(c telebot.Context, s fsm.Context) error {

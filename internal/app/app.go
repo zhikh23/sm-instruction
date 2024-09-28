@@ -17,12 +17,13 @@ type Commands struct {
 }
 
 type Queries struct {
-	GetUser             query.GetUserHandler
-	CharacterByUsername query.CharacterByUsernameHandler
-	GetCharacter        query.GetCharacterHandler
-	Rating              query.RatingHandler
-	GetActivity         query.GetActivityHandler
-	AdminActivity       query.AdminActivityHandler
-	AvailableActivities query.AvailableActivitiesHandler
-	AvailableSlots      query.AvailableSlotsHandler
+	GetUser              query.GetUserHandler
+	CharacterByUsername  query.CharacterByUsernameHandler
+	GetCharacter         query.GetCharacterHandler
+	Rating               query.RatingHandler
+	GetActivity          query.GetActivityHandler
+	AdminActivity        query.AdminActivityHandler
+	AvailableActivities  query.AvailableActivitiesHandler
+	AdditionalActivities query.AdditionalActivitiesHandler
+	AvailableSlots       query.AvailableSlotsHandler
 }

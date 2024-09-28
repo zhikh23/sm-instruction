@@ -122,6 +122,18 @@ func (r *mockActivitiesRepository) AvailableActivities(_ context.Context) ([]*sm
 	), nil
 }
 
+func (r *mockActivitiesRepository) AdditionalActivities(_ context.Context) ([]*sm.Activity, error) {
+	r.RLock()
+	defer r.RUnlock()
+
+	return funcs.Filter(
+		r.activities(),
+		func(a *sm.Activity) bool {
+			return a.Location == nil
+		},
+	), nil
+}
+
 func (r *mockActivitiesRepository) UpdateSlots(
 	ctx context.Context,
 	activityUUID string,

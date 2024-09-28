@@ -119,6 +119,20 @@ func (r *pgActivitiesRepository) AvailableActivities(
 	return res, nil
 }
 
+func (r *pgActivitiesRepository) AdditionalActivities(
+	ctx context.Context,
+) ([]*sm.Activity, error) {
+	var res []*sm.Activity
+	var err error
+	if err = pgutils.RunTx(ctx, r.db, func(tx *sqlx.Tx) error {
+		res, err = r.additionalActivities(ctx, tx)
+		return err
+	}); err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
 func (r *pgActivitiesRepository) UpdateSlots(
 	ctx context.Context,
 	activityUUID string,
@@ -261,6 +275,71 @@ func (r *pgActivitiesRepository) availableActivities(
 		`SELECT name, description, location, skills, max_points 
 		 FROM   activities AS activity
 		 WHERE  location IS NOT NULL`,
+	); err != nil {
+		return nil, err
+	}
+
+	activities := make([]*sm.Activity, 0, len(activityRows))
+	for _, activityRow := range activityRows {
+		var slotsRows []activitySlotRow
+		if err = sqlx.SelectContext(ctx, qx, &slotsRows,
+			`SELECT activity_name, start, end_, group_name
+			 FROM activity_slots
+			 WHERE activity_name = $1
+			 ORDER BY start`, activityRow.Name,
+		); err != nil {
+			return nil, err
+		}
+		if len(slotsRows) == 0 {
+			continue
+		}
+
+		slots, err := unmarshallActivitySlotsFromRows(slotsRows)
+		if err != nil {
+			return nil, err
+		}
+
+		var adminsRows []adminRow
+		if err = sqlx.SelectContext(ctx, qx, &adminsRows,
+			`SELECT activity_name, username 
+			 FROM admins 
+			 WHERE activity_name = $1`, activityRow.Name,
+		); err != nil {
+			return nil, err
+		}
+		admins, err := unmarshallAdminsFromRows(adminsRows)
+		if err != nil {
+			return nil, err
+		}
+
+		activity, err := sm.UnmarshallActivityFromDB(
+			activityRow.Name,
+			activityRow.Description,
+			activityRow.Location,
+			admins,
+			activityRow.Skills,
+			activityRow.MaxPoints,
+			slots,
+		)
+		if err != nil {
+			return nil, err
+		}
+		activities = append(activities, activity)
+	}
+	return activities, nil
+}
+
+func (r *pgActivitiesRepository) additionalActivities(
+	ctx context.Context,
+	qx sqlx.QueryerContext,
+) ([]*sm.Activity, error) {
+	var err error
+
+	var activityRows []activityRow
+	if err = sqlx.SelectContext(ctx, qx, &activityRows,
+		`SELECT name, description, location, skills, max_points 
+		 FROM   activities AS activity
+		 WHERE  location IS NULL AND description IS NOT NULL`,
 	); err != nil {
 		return nil, err
 	}

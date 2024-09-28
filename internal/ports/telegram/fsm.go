@@ -21,6 +21,8 @@ const (
 
 	takeSlotHandleActivityNameState = fsm.State("takeSlotHandleActivityNameState")
 	takeSlotHandleStartTimeState    = fsm.State("takeSlotHandleStartTimeState")
+
+	additionalHandleActivityNameState = fsm.State("additionalHandleActivityNameState")
 )
 
 func (p *Port) RegisterFSMManager(m *fsm.Manager, dp fsm.Dispatcher) {
@@ -75,6 +77,12 @@ func (p *Port) RegisterFSMManager(m *fsm.Manager, dp fsm.Dispatcher) {
 	))
 
 	dp.Dispatch(m.New(
+		fsmopt.OnStates(participantMenuHandle),
+		fsmopt.On(participantMenuAdditionalButton),
+		fsmopt.Do(p.sendParticipantAdditionalActivities),
+	))
+
+	dp.Dispatch(m.New(
 		fsmopt.OnStates(adminMenuHandle),
 		fsmopt.On(adminMenuTimetableButton),
 		fsmopt.Do(p.sendAdminTimetable),
@@ -114,5 +122,11 @@ func (p *Port) RegisterFSMManager(m *fsm.Manager, dp fsm.Dispatcher) {
 		fsmopt.OnStates(takeSlotHandleStartTimeState),
 		fsmopt.On(telebot.OnText),
 		fsmopt.Do(p.takeSlotHandleStartTime),
+	))
+
+	dp.Dispatch(m.New(
+		fsmopt.OnStates(additionalHandleActivityNameState),
+		fsmopt.On(telebot.OnText),
+		fsmopt.Do(p.additionalHandleActivityName),
 	))
 }
