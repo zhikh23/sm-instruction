@@ -15,6 +15,8 @@ import (
 )
 
 const takeSlotActivityName = "takeSlotActivityName"
+const takeSlotStartTime = "takeSlotStartTime"
+const takeSlotApproveButton = "Да!"
 
 func (p *Port) takeSlotSendChooseActivity(c telebot.Context, s fsm.Context) error {
 	ctx := context.Background()
@@ -130,12 +132,73 @@ func (p *Port) takeSlotHandleStartTime(c telebot.Context, s fsm.Context) error {
 	}
 	start := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), parsed.Hour(), parsed.Minute(), 0, 0, time.Local)
 
+	if err = s.Update(ctx, takeSlotStartTime, start); err != nil {
+		return err
+	}
+
+	return p.takeSlotSendActivity(c, s)
+}
+
+func (p *Port) takeSlotSendActivity(c telebot.Context, s fsm.Context) error {
+	ctx := context.Background()
+
+	activityName, err := takeSkillExtractActivityName(ctx, s)
+	if err != nil {
+		return err
+	}
+
+	activity, err := p.app.Queries.GetActivity.Handle(ctx, query.GetActivity{
+		ActivityName: activityName,
+	})
+	if err != nil {
+		return err
+	}
+
+	msg := fmt.Sprintf("<b>%s</b>\n", activity.FullName)
+
+	if activity.Location != nil {
+		msg = buildMessage("\n",
+			msg,
+			fmt.Sprintf("🔹 <i>Где?</i> %s", *activity.Location),
+			"🔹 <i>Что это?</i>",
+			"",
+			*activity.Description,
+			"",
+			"❓ Подтверждаешь бронирование точки?",
+		)
+	}
+
+	buttons := []string{takeSlotApproveButton, "Отменить"}
+
+	if err = s.SetState(ctx, takeSlotHandleApproveState); err != nil {
+		return err
+	}
+
+	return c.Send(
+		msg, telebot.ModeHTML,
+		createMarkupWithButtonsFromStrings(buttons, 2),
+	)
+}
+
+func (p *Port) takeSlotHandleApprove(c telebot.Context, s fsm.Context) error {
+	ctx := context.Background()
+
+	answer := c.Message().Text
+	if answer != takeSlotApproveButton {
+		return p.sendParticipantMenu(c, s)
+	}
+
 	groupName, err := extractGroupName(ctx, s)
 	if err != nil {
 		return err
 	}
 
 	activityName, err := takeSkillExtractActivityName(ctx, s)
+	if err != nil {
+		return err
+	}
+
+	start, err := takeSkillExtractStartTime(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -154,7 +217,7 @@ func (p *Port) takeSlotHandleStartTime(c telebot.Context, s fsm.Context) error {
 		return err
 	}
 
-	err = c.Send(fmt.Sprintf("✅ Успешно забронирована точка %q на время %s", activityName, startS))
+	err = c.Send(fmt.Sprintf("✅ Успешно забронирована точка %q на время %s", activityName, start.Format(sm.TimeFormat)))
 	if err != nil {
 		return err
 	}
@@ -168,4 +231,12 @@ func takeSkillExtractActivityName(ctx context.Context, s fsm.Context) (string, e
 		return "", fmt.Errorf("failed extract activity name: %w", err)
 	}
 	return activityName, nil
+}
+
+func takeSkillExtractStartTime(ctx context.Context, s fsm.Context) (time.Time, error) {
+	var startTime time.Time
+	if err := s.Data(ctx, takeSlotStartTime, &startTime); err != nil {
+		return time.Time{}, fmt.Errorf("failed extract start time: %w", err)
+	}
+	return startTime, nil
 }

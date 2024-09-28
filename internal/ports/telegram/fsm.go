@@ -21,6 +21,7 @@ const (
 
 	takeSlotHandleActivityNameState = fsm.State("takeSlotHandleActivityNameState")
 	takeSlotHandleStartTimeState    = fsm.State("takeSlotHandleStartTimeState")
+	takeSlotHandleApproveState      = fsm.State("takeSlotHandleApproveState")
 
 	additionalHandleActivityNameState = fsm.State("additionalHandleActivityNameState")
 
@@ -130,6 +131,12 @@ func (p *Port) RegisterFSMManager(m *fsm.Manager, dp fsm.Dispatcher) {
 		fsmopt.OnStates(takeSlotHandleStartTimeState),
 		fsmopt.On(telebot.OnText),
 		fsmopt.Do(p.takeSlotHandleStartTime),
+	))
+
+	dp.Dispatch(m.New(
+		fsmopt.OnStates(takeSlotHandleApproveState),
+		fsmopt.On(telebot.OnText),
+		fsmopt.Do(p.takeSlotHandleApprove),
 	))
 
 	dp.Dispatch(m.New(
