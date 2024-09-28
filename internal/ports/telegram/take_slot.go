@@ -9,9 +9,9 @@ import (
 	"github.com/vitaliy-ukiru/fsm-telebot/v2"
 	"gopkg.in/telebot.v3"
 
-	"sm-instruction/internal/app/command"
-	"sm-instruction/internal/app/query"
-	"sm-instruction/internal/domain/sm"
+	"github.com/zhikh23/sm-instruction/internal/app/command"
+	"github.com/zhikh23/sm-instruction/internal/app/query"
+	"github.com/zhikh23/sm-instruction/internal/domain/sm"
 )
 
 const takeSlotActivityName = "takeSlotActivityName"

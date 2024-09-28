@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"time"
 
-	"sm-instruction/internal/common/decorator"
-	"sm-instruction/internal/domain/sm"
+	"github.com/zhikh23/sm-instruction/internal/common/decorator"
+	"github.com/zhikh23/sm-instruction/internal/domain/sm"
 )
 
 type TakeSlot struct {
@@ -47,7 +47,7 @@ func (h *takeSlotHandler) Handle(ctx context.Context, cmd TakeSlot) error {
 		ctx,
 		cmd.GroupName,
 		func(innerCtx1 context.Context, char *sm.Character) error {
-			return h.activities.Update(
+			return h.activities.UpdateSlots(
 				innerCtx1,
 				cmd.ActivityName,
 				func(innerCtx2 context.Context, activity *sm.Activity) error {

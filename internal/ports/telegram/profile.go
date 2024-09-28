@@ -8,8 +8,8 @@ import (
 	"github.com/vitaliy-ukiru/fsm-telebot/v2"
 	"gopkg.in/telebot.v3"
 
-	"sm-instruction/internal/app/query"
-	"sm-instruction/internal/domain/sm"
+	"github.com/zhikh23/sm-instruction/internal/app/query"
+	"github.com/zhikh23/sm-instruction/internal/domain/sm"
 )
 
 func (p *Port) sendProfile(c telebot.Context, s fsm.Context) error {
@@ -26,6 +26,7 @@ func (p *Port) sendProfile(c telebot.Context, s fsm.Context) error {
 	}
 
 	msg := buildMessage("\n",
+		fmt.Sprintf("Твоя учебная группа: %s", char.GroupName),
 		fmt.Sprintf("Твой никнейм: @%s", char.Username),
 		"Твои навыки:",
 	)

@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"os"
 
-	"sm-instruction/internal/common/logs/handlers/slogpretty"
+	"github.com/zhikh23/sm-instruction/internal/common/logs/handlers/slogpretty"
 )
 
 const (

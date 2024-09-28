@@ -1,6 +1,6 @@
 package sm
 
-import "sm-instruction/internal/common/commonerrs"
+import "github.com/zhikh23/sm-instruction/internal/common/commonerrs"
 
 type Role struct {
 	s string

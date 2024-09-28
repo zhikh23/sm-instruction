@@ -3,8 +3,8 @@ package telegram
 import (
 	"log/slog"
 
-	"sm-instruction/internal/app"
-	"sm-instruction/internal/common/logs"
+	"github.com/zhikh23/sm-instruction/internal/app"
+	"github.com/zhikh23/sm-instruction/internal/common/logs"
 )
 
 type Port struct {

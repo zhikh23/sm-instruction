@@ -2,11 +2,11 @@ package mocks
 
 import (
 	"context"
-	"sm-instruction/pkg/funcs"
 	"sync"
 	"time"
 
-	"sm-instruction/internal/domain/sm"
+	"github.com/zhikh23/sm-instruction/internal/domain/sm"
+	"github.com/zhikh23/sm-instruction/pkg/funcs"
 )
 
 type mockActivitiesRepository struct {
@@ -122,7 +122,7 @@ func (r *mockActivitiesRepository) ActivitiesWithLocations(_ context.Context) ([
 	), nil
 }
 
-func (r *mockActivitiesRepository) Update(
+func (r *mockActivitiesRepository) UpdateSlots(
 	ctx context.Context,
 	activityUUID string,
 	updateFn func(context.Context, *sm.Activity) error,

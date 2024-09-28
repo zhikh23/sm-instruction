@@ -4,8 +4,8 @@ import (
 	"context"
 	"log/slog"
 
-	"sm-instruction/internal/common/decorator"
-	"sm-instruction/internal/domain/sm"
+	"github.com/zhikh23/sm-instruction/internal/common/decorator"
+	"github.com/zhikh23/sm-instruction/internal/domain/sm"
 )
 
 type AdminActivity struct {

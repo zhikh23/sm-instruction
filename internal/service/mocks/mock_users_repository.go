@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"sm-instruction/internal/domain/sm"
+	"github.com/zhikh23/sm-instruction/internal/domain/sm"
 )
 
 type mockUsersRepository struct {

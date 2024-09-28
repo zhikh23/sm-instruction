@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"sm-instruction/internal/common/commonerrs"
+	"github.com/zhikh23/sm-instruction/internal/common/commonerrs"
 )
 
 func TestNewSkillTypeFromString(t *testing.T) {

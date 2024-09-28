@@ -3,10 +3,10 @@ package sm
 import (
 	"errors"
 	"slices"
-	"sm-instruction/pkg/funcs"
 	"time"
 
-	"sm-instruction/internal/common/commonerrs"
+	"github.com/zhikh23/sm-instruction/internal/common/commonerrs"
+	"github.com/zhikh23/sm-instruction/pkg/funcs"
 )
 
 type Activity struct {
@@ -103,7 +103,6 @@ func MustNewActivity(
 }
 
 func UnmarshallActivityFromDB(
-	uuid string,
 	name string,
 	description *string,
 	location *string,
@@ -112,10 +111,6 @@ func UnmarshallActivityFromDB(
 	maxPoints int,
 	slots []*Slot,
 ) (*Activity, error) {
-	if uuid == "" {
-		return nil, commonerrs.NewInvalidInputError("expected not empty uuid")
-	}
-
 	if name == "" {
 		return nil, commonerrs.NewInvalidInputError("expected not empty name")
 	}

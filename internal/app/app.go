@@ -1,8 +1,8 @@
 package app
 
 import (
-	"sm-instruction/internal/app/command"
-	"sm-instruction/internal/app/query"
+	"github.com/zhikh23/sm-instruction/internal/app/command"
+	"github.com/zhikh23/sm-instruction/internal/app/query"
 )
 
 type Application struct {

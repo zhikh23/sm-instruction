@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"sm-instruction/internal/common/commonerrs"
+	"github.com/zhikh23/sm-instruction/internal/common/commonerrs"
 )
 
 const TimeFormat = "15:04"
@@ -57,7 +57,7 @@ func MustNewSlot(
 	return s
 }
 
-func UnmarshallFromDB(
+func UnmarshallSlotFromDB(
 	start time.Time,
 	end time.Time,
 	whom *string,

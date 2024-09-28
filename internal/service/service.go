@@ -1,17 +1,36 @@
 package service
 
 import (
+	"errors"
 	"log/slog"
 
-	"sm-instruction/internal/app"
-	"sm-instruction/internal/app/command"
-	"sm-instruction/internal/app/query"
-	"sm-instruction/internal/common/decorator"
-	"sm-instruction/internal/common/logs"
-	"sm-instruction/internal/common/metrics"
-	"sm-instruction/internal/domain/sm"
-	"sm-instruction/internal/service/mocks"
+	"github.com/zhikh23/sm-instruction/internal/adapters"
+	"github.com/zhikh23/sm-instruction/internal/app"
+	"github.com/zhikh23/sm-instruction/internal/app/command"
+	"github.com/zhikh23/sm-instruction/internal/app/query"
+	"github.com/zhikh23/sm-instruction/internal/common/decorator"
+	"github.com/zhikh23/sm-instruction/internal/common/logs"
+	"github.com/zhikh23/sm-instruction/internal/common/metrics"
+	"github.com/zhikh23/sm-instruction/internal/domain/sm"
+	"github.com/zhikh23/sm-instruction/internal/service/mocks"
 )
+
+func NewApplication() (*app.Application, func() error) {
+	log := logs.DefaultLogger()
+	metricsClient := metrics.NoOp{}
+
+	users, closeUsers := adapters.NewPGUsersRepository()
+	chars, closeChars := adapters.NewPGCharactersRepository()
+	activities, closeActivities := adapters.NewPGActivitiesRepository()
+
+	return newApplication(log, metricsClient, users, chars, activities), func() error {
+		var err error
+		err = errors.Join(err, closeUsers())
+		err = errors.Join(err, closeChars())
+		err = errors.Join(err, closeActivities())
+		return err
+	}
+}
 
 func NewMockedApplication() *app.Application {
 	log := logs.DefaultLogger()

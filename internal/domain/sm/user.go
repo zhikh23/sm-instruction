@@ -1,7 +1,7 @@
 package sm
 
 import (
-	"sm-instruction/internal/common/commonerrs"
+	"github.com/zhikh23/sm-instruction/internal/common/commonerrs"
 )
 
 type User struct {

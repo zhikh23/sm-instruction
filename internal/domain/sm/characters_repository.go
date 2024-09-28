@@ -14,7 +14,7 @@ type CharactersRepository interface {
 	CharacterByUsername(ctx context.Context, username string) (*Character, error)
 	Update(
 		ctx context.Context,
-		username string,
+		groupName string,
 		updateFn func(innerCtx context.Context, char *Character) error,
 	) error
 }

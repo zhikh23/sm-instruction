@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"sm-instruction/internal/domain/sm"
+	"github.com/zhikh23/sm-instruction/internal/domain/sm"
 )
 
 func TestSlot_Take(t *testing.T) {

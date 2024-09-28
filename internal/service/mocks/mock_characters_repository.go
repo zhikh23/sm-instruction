@@ -2,8 +2,9 @@ package mocks
 
 import (
 	"context"
-	"sm-instruction/internal/domain/sm"
 	"sync"
+
+	"github.com/zhikh23/sm-instruction/internal/domain/sm"
 )
 
 type mockCharactersRepository struct {

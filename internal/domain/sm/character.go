@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"time"
 
-	"sm-instruction/internal/common/commonerrs"
+	"github.com/zhikh23/sm-instruction/internal/common/commonerrs"
 )
 
 type Character struct {
@@ -66,34 +66,23 @@ func MustNewCharacter(
 }
 
 func UnmarshallCharacterFromDB(
-	username string,
 	groupName string,
-	engineeringSkill int,
-	researchingSkill int,
-	socialSkill int,
-	creativeSkill int,
-	sportiveSkill int,
-	startedAt time.Time,
+	username string,
+	skills map[SkillType]int,
+	startedAt *time.Time,
 	slots []*Slot,
 ) (*Character, error) {
-	if username == "" {
-		return nil, commonerrs.NewInvalidInputError("expected not empty username")
-	}
-
 	if groupName == "" {
 		return nil, commonerrs.NewInvalidInputError("expected not empty group")
+	}
+
+	if username == "" {
+		return nil, commonerrs.NewInvalidInputError("expected not empty username")
 	}
 
 	if err := ValidateGroupName(groupName); err != nil {
 		return nil, err
 	}
-
-	skills := make(map[SkillType]int)
-	skills[Engineering] = engineeringSkill
-	skills[Researching] = researchingSkill
-	skills[Social] = socialSkill
-	skills[Sportive] = sportiveSkill
-	skills[Creative] = creativeSkill
 
 	if slots == nil {
 		slots = make([]*Slot, 0)
@@ -108,7 +97,7 @@ func UnmarshallCharacterFromDB(
 		Username:  username,
 		GroupName: groupName,
 		Skills:    skills,
-		StartedAt: &startedAt,
+		StartedAt: startedAt,
 		slots:     mappedSlots,
 	}, nil
 }
@@ -182,6 +171,8 @@ func (c *Character) FreeSlot(start time.Time) error {
 
 	return slot.Free()
 }
+
+var ErrSlotAlreadyExists = errors.New("slot already exists")
 
 func mapSlots(slots []*Slot) (map[time.Time]*Slot, error) {
 	m := make(map[time.Time]*Slot)

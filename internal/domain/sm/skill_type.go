@@ -3,7 +3,7 @@ package sm
 import (
 	"fmt"
 
-	"sm-instruction/internal/common/commonerrs"
+	"github.com/zhikh23/sm-instruction/internal/common/commonerrs"
 )
 
 type SkillType struct {

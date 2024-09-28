@@ -13,7 +13,7 @@ type ActivitiesRepository interface {
 	Activity(ctx context.Context, activityName string) (*Activity, error)
 	ActivityByAdmin(ctx context.Context, adminUsername string) (*Activity, error)
 	ActivitiesWithLocations(ctx context.Context) ([]*Activity, error)
-	Update(
+	UpdateSlots(
 		ctx context.Context,
 		activityUUID string,
 		updateFn func(innerCtx context.Context, activity *Activity) error,
