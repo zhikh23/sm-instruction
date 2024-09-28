@@ -79,15 +79,22 @@ CREATE TABLE IF NOT EXISTS activity_slots (
             ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS character_skills (
-    group_name VARCHAR (8) NOT NULL,
-    skill_type SKILL_TYPE  NOT NULL,
-    points     INTEGER     NOT NULL,
+CREATE TABLE IF NOT EXISTS grades (
+    group_name    VARCHAR (8)   NOT NULL,
+    skill_type    SKILL_TYPE    NOT NULL,
+    points        INTEGER       NOT NULL,
+    activity_name VARCHAR (256) NOT NULL,
+    time          TIMESTAMP     NOT NULL,
 
-    PRIMARY KEY ( group_name, skill_type ),
+    CONSTRAINT fk_group_name
+        FOREIGN KEY ( group_name )
+            REFERENCES characters ( group_name )
+            ON DELETE CASCADE,
 
-    CONSTRAINT pos_points
-        CHECK ( points >= 0 )
+    CONSTRAINT fk_activity_name
+        FOREIGN KEY ( activity_name )
+            REFERENCES activities ( name )
+            ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS character_slots (

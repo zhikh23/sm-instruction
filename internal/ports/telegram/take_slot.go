@@ -39,12 +39,17 @@ func (p *Port) takeSlotSendChooseActivity(c telebot.Context, s fsm.Context) erro
 		buttons[i] = activity.Name
 	}
 
+	msg := buildMessage(
+		"<b>БРОНИРОВАНИЕ ТОЧКИ</b>\n",
+		"Выбери доступную для записи точку.",
+	)
+
 	if err = s.SetState(ctx, takeSlotHandleActivityNameState); err != nil {
 		return err
 	}
 
 	return c.Send(
-		"Выбери доступную для записи точку.",
+		msg,
 		createMarkupWithButtonsFromStrings(buttons, 2),
 	)
 }

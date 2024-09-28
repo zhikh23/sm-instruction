@@ -17,12 +17,20 @@ type Slot struct {
 	Whom  *string
 }
 
+type Grade struct {
+	SkillType    string
+	Points       int
+	ActivityName string
+	Time         time.Time
+}
+
 type Character struct {
 	GroupName string
 	Username  string
 	Skills    map[string]int
 	Rating    float64
 	Slots     []Slot
+	Grades    []Grade
 }
 
 type Activity struct {
@@ -90,13 +98,31 @@ func convertSlotsToApp(slots []*sm.Slot) []Slot {
 	return res
 }
 
+func convertGradeToApp(g sm.Grade) Grade {
+	return Grade{
+		SkillType:    g.SkillType.String(),
+		Points:       g.Points,
+		ActivityName: g.ActivityName,
+		Time:         g.Time,
+	}
+}
+
+func convertGradesToApp(gs []sm.Grade) []Grade {
+	res := make([]Grade, len(gs))
+	for i, g := range gs {
+		res[i] = convertGradeToApp(g)
+	}
+	return res
+}
+
 func convertCharacterToApp(c *sm.Character) Character {
 	return Character{
 		Username:  c.Username,
 		GroupName: c.GroupName,
-		Skills:    convertSkillsToApp(c.Skills),
+		Skills:    convertSkillsToApp(c.Skills()),
 		Rating:    c.Rating(),
 		Slots:     convertSlotsToApp(c.Slots),
+		Grades:    convertGradesToApp(c.Grades),
 	}
 }
 

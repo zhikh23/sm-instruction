@@ -24,7 +24,10 @@ func (p *Port) sendAdminTimetable(c telebot.Context, s fsm.Context) error {
 		return err
 	}
 
-	msg := fmt.Sprintf("Расписание на точку %q «СМ. Инструкция по выживанию»:\n\n", activityName)
+	msg := buildMessage("\n",
+		"<b>РАСПИСАНИЕ</b>\n",
+		fmt.Sprintf("Для точки %q:", activityName),
+	)
 	for _, slot := range char.Slots {
 		var text string
 		if slot.Whom == nil {

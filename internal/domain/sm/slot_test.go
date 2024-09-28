@@ -10,7 +10,7 @@ import (
 )
 
 func TestSlot_Take(t *testing.T) {
-	slot, err := sm.NewSlot(time.Now(), time.Now().Add(20*time.Minute))
+	slot, err := sm.NewSlot(todayTime(11, 0), todayTime(11, 20))
 	require.NoError(t, err)
 
 	require.True(t, slot.IsAvailable())
@@ -30,4 +30,8 @@ func TestSlot_Take(t *testing.T) {
 
 	err = slot.Free()
 	require.ErrorIs(t, err, sm.ErrSlotHasNotTaken)
+}
+
+func todayTime(hours int, minutes int) time.Time {
+	return time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), hours, minutes, 0, 0, time.Local)
 }

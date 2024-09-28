@@ -172,9 +172,7 @@ func (a *Activity) Award(char *Character, skill SkillType, points int) error {
 		return ErrCannotIncSkill
 	}
 
-	char.IncSkill(skill, points)
-
-	return nil
+	return char.GiveGrade(skill, points, a.Name)
 }
 
 func (a *Activity) TakeSlot(start time.Time, groupName string) error {

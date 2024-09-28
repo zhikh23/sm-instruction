@@ -114,20 +114,22 @@ func (r *pgCharactersRepository) save(
 
 	if err = r.requireExecResult(sqlx.NamedExecContext(ctx, ex,
 		`INSERT INTO
-			character_skills (group_name, skill_type, points)
-		 VALUES (:group_name, :skill_type, :points)`,
-		marshallCharacterSkillsToRows(character.GroupName, character.Skills),
-	)); err != nil {
-		return err
-	}
-
-	if err = r.requireExecResult(sqlx.NamedExecContext(ctx, ex,
-		`INSERT INTO
 			character_slots (group_name, start, end_, activity_name) 
 		 VALUES (:group_name, :start, :end_, :activity_name)`,
 		marshallCharacterSlotsToRows(character.GroupName, character.Slots),
 	)); err != nil {
 		return err
+	}
+
+	if len(character.Grades) > 0 {
+		if err = r.requireExecResult(sqlx.NamedExecContext(ctx, ex,
+			`INSERT INTO
+			grades (group_name, skill_type, points, activity_name, time)
+		 VALUES (:group_name, :skill_type, :points, :activity_name, :time)`,
+			marshallCharacterGradesToRows(character.GroupName, character.Grades),
+		)); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -149,19 +151,6 @@ func (r *pgCharactersRepository) character(
 		return nil, err
 	}
 
-	var characterSkillsRows []characterSkillRow
-	if err = sqlx.SelectContext(ctx, qx, &characterSkillsRows,
-		`SELECT group_name, skill_type, points
-		 FROM   character_skills
-		 WHERE  group_name = $1`, characterRow.GroupName,
-	); err != nil {
-		return nil, err
-	}
-	skills, err := unmarshallCharacterSkillsFromRows(characterSkillsRows)
-	if err != nil {
-		return nil, err
-	}
-
 	var characterSlotsRows []characterSlotRow
 	if err = sqlx.SelectContext(ctx, qx, &characterSlotsRows,
 		`SELECT   group_name, start, end_, activity_name
@@ -176,12 +165,25 @@ func (r *pgCharactersRepository) character(
 		return nil, err
 	}
 
+	var characterGradesRows []characterGradeRow
+	if err = sqlx.SelectContext(ctx, qx, &characterGradesRows,
+		`SELECT   group_name, skill_type, points, activity_name, time
+		 FROM     grades
+		 WHERE    group_name = $1`, characterRow.GroupName,
+	); err != nil {
+		return nil, err
+	}
+	grades, err := unmarshallCharacterGradesFromRows(characterGradesRows)
+	if err != nil {
+		return nil, err
+	}
+
 	return sm.UnmarshallCharacterFromDB(
 		characterRow.GroupName,
 		characterRow.Username,
-		skills,
 		timeLocalOrNil(characterRow.StartedAt),
 		slots,
+		grades,
 	)
 }
 
@@ -201,19 +203,6 @@ func (r *pgCharactersRepository) characterByUsername(
 		return nil, err
 	}
 
-	var characterSkillsRows []characterSkillRow
-	if err = sqlx.SelectContext(ctx, qx, &characterSkillsRows,
-		`SELECT group_name, skill_type, points
-		 FROM   character_skills
-		 WHERE  group_name = $1`, characterRow.GroupName,
-	); err != nil {
-		return nil, err
-	}
-	skills, err := unmarshallCharacterSkillsFromRows(characterSkillsRows)
-	if err != nil {
-		return nil, err
-	}
-
 	var characterSlotsRows []characterSlotRow
 	if err = sqlx.SelectContext(ctx, qx, &characterSlotsRows,
 		`SELECT   group_name, start, end_, activity_name
@@ -228,12 +217,25 @@ func (r *pgCharactersRepository) characterByUsername(
 		return nil, err
 	}
 
+	var characterGradesRows []characterGradeRow
+	if err = sqlx.SelectContext(ctx, qx, &characterGradesRows,
+		`SELECT   group_name, skill_type, points, activity_name, time
+		 FROM     grades
+		 WHERE    group_name = $1`, characterRow.GroupName,
+	); err != nil {
+		return nil, err
+	}
+	grades, err := unmarshallCharacterGradesFromRows(characterGradesRows)
+	if err != nil {
+		return nil, err
+	}
+
 	return sm.UnmarshallCharacterFromDB(
 		characterRow.GroupName,
 		characterRow.Username,
-		skills,
 		timeLocalOrNil(characterRow.StartedAt),
 		slots,
+		grades,
 	)
 }
 
@@ -252,21 +254,6 @@ func (r *pgCharactersRepository) update(
 	}
 
 	if err = r.requireExecResult(ex.ExecContext(ctx,
-		`DELETE FROM character_skills WHERE group_name = $1`, character.GroupName,
-	)); err != nil {
-		return err
-	}
-
-	if err = r.requireExecResult(sqlx.NamedExecContext(ctx, ex,
-		`INSERT INTO
-			character_skills (group_name, skill_type, points)
-		 VALUES (:group_name, :skill_type, :points)`,
-		marshallCharacterSkillsToRows(character.GroupName, character.Skills),
-	)); err != nil {
-		return err
-	}
-
-	if err = r.requireExecResult(ex.ExecContext(ctx,
 		`DELETE FROM character_slots WHERE group_name = $1`, character.GroupName,
 	)); err != nil {
 		return err
@@ -279,6 +266,23 @@ func (r *pgCharactersRepository) update(
 		marshallCharacterSlotsToRows(character.GroupName, character.Slots),
 	)); err != nil {
 		return err
+	}
+
+	if err = r.noRequireExecResult(ex.ExecContext(ctx,
+		`DELETE FROM grades WHERE group_name = $1`, character.GroupName,
+	)); err != nil {
+		return err
+	}
+
+	if len(character.Grades) > 0 {
+		if err = r.requireExecResult(sqlx.NamedExecContext(ctx, ex,
+			`INSERT INTO 
+			grades (group_name, skill_type, points, activity_name, time) 
+		 VALUES (:group_name, :skill_type, :points, :activity_name, :time)`,
+			marshallCharacterGradesToRows(character.GroupName, character.Grades),
+		)); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -301,6 +305,10 @@ func (r *pgCharactersRepository) requireExecResult(res sql.Result, err error) er
 	return nil
 }
 
+func (r *pgCharactersRepository) noRequireExecResult(_ sql.Result, err error) error {
+	return err
+}
+
 type characterRow struct {
 	GroupName string     `db:"group_name"`
 	Username  string     `db:"username"`
@@ -315,36 +323,40 @@ func marshallCharacterToRow(c *sm.Character) characterRow {
 	}
 }
 
-type characterSkillRow struct {
-	GroupName string `db:"group_name"`
-	SkillType string `db:"skill_type"`
-	Points    int    `db:"points"`
+type characterGradeRow struct {
+	GroupName    string    `db:"group_name"`
+	SkillType    string    `db:"skill_type"`
+	Points       int       `db:"points"`
+	ActivityName string    `db:"activity_name"`
+	Time         time.Time `db:"time"`
 }
 
-func marshallCharacterSkillToRow(groupName string, skillType sm.SkillType, points int) characterSkillRow {
-	return characterSkillRow{
-		GroupName: groupName,
-		SkillType: skillType.String(),
-		Points:    points,
+func marshallCharacterGradeToRow(groupName string, g sm.Grade) characterGradeRow {
+	return characterGradeRow{
+		GroupName:    groupName,
+		SkillType:    g.SkillType.String(),
+		Points:       g.Points,
+		ActivityName: g.ActivityName,
+		Time:         g.Time.UTC(),
 	}
 }
 
-func marshallCharacterSkillsToRows(groupName string, skills map[sm.SkillType]int) []characterSkillRow {
-	res := make([]characterSkillRow, 0, len(skills))
-	for k, v := range skills {
-		res = append(res, marshallCharacterSkillToRow(groupName, k, v))
+func marshallCharacterGradesToRows(groupName string, gs []sm.Grade) []characterGradeRow {
+	res := make([]characterGradeRow, 0, len(gs))
+	for _, g := range gs {
+		res = append(res, marshallCharacterGradeToRow(groupName, g))
 	}
 	return res
 }
 
-func unmarshallCharacterSkillsFromRows(ss []characterSkillRow) (map[sm.SkillType]int, error) {
-	res := make(map[sm.SkillType]int, len(ss))
-	for _, v := range ss {
-		st, err := sm.NewSkillTypeFromString(v.SkillType)
+func unmarshallCharacterGradesFromRows(ss []characterGradeRow) ([]sm.Grade, error) {
+	res := make([]sm.Grade, len(ss))
+	for i, s := range ss {
+		g, err := sm.UnmarshallGradeFromDB(s.SkillType, s.Points, s.ActivityName, s.Time)
 		if err != nil {
 			return nil, err
 		}
-		res[st] = v.Points
+		res[i] = g
 	}
 	return res, nil
 }

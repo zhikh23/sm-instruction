@@ -1,5 +1,5 @@
 DROP TABLE IF EXISTS character_slots;
-DROP TABLE IF EXISTS character_skills;
+DROP TABLE IF EXISTS grades;
 DROP TABLE IF EXISTS activity_slots;
 DROP TABLE IF EXISTS admins;
 DROP TABLE IF EXISTS activities;

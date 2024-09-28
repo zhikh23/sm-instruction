@@ -24,16 +24,16 @@ func (p *Port) sendCharacterTimetable(c telebot.Context, s fsm.Context) error {
 		return err
 	}
 
-	msg := "Расписание на «СМ. Инструкция по выживанию»:\n\n"
+	msg := "<b>РАСПИСАНИЕ</b>\n\n"
 	for _, slot := range char.Slots {
 		var text string
 		if slot.Whom == nil {
-			text = "Свободно"
+			text = "-"
 		} else {
 			text = *slot.Whom
 		}
 		msg += fmt.Sprintf(
-			"<code>%s-%s</code> %q\n",
+			"<code>%s-%s</code> %s\n",
 			slot.Start.Format(sm.TimeFormat), slot.End.Format(sm.TimeFormat), text,
 		)
 	}

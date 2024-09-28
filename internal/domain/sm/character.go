@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"time"
 
 	"github.com/zhikh23/sm-instruction/internal/common/commonerrs"
@@ -14,9 +15,9 @@ var ErrSlotAlreadyExists = errors.New("slot already exists")
 type Character struct {
 	GroupName string
 	Username  string
-	Skills    map[SkillType]int
 	StartedAt *time.Time
 	Slots     []*Slot
+	Grades    []Grade
 }
 
 func NewCharacter(
@@ -52,9 +53,9 @@ func NewCharacter(
 	return &Character{
 		GroupName: groupName,
 		Username:  username,
-		Skills:    skills,
 		StartedAt: nil,
 		Slots:     slots,
+		Grades:    make([]Grade, 0),
 	}, nil
 }
 
@@ -73,9 +74,9 @@ func MustNewCharacter(
 func UnmarshallCharacterFromDB(
 	groupName string,
 	username string,
-	skills map[SkillType]int,
 	startedAt *time.Time,
 	slots []*Slot,
+	grades []Grade,
 ) (*Character, error) {
 	if groupName == "" {
 		return nil, commonerrs.NewInvalidInputError("expected not empty group")
@@ -93,12 +94,16 @@ func UnmarshallCharacterFromDB(
 		slots = make([]*Slot, 0)
 	}
 
+	if grades == nil {
+		grades = make([]Grade, 0)
+	}
+
 	return &Character{
 		Username:  username,
 		GroupName: groupName,
-		Skills:    skills,
 		StartedAt: startedAt,
 		Slots:     slots,
+		Grades:    grades,
 	}, nil
 }
 
@@ -114,16 +119,19 @@ func ValidateGroupName(groupName string) error {
 	return nil
 }
 
-func (c *Character) Skill(t SkillType) int {
-	return c.Skills[t]
-}
-
 func (c *Character) Rating() float64 {
 	return c.ratingFactor() * float64(c.ratingBase())
 }
 
-func (c *Character) IncSkill(t SkillType, score int) {
-	c.Skills[t] += score
+func (c *Character) GiveGrade(skillType SkillType, points int, activityName string) error {
+	grade, err := NewGrade(skillType, points, activityName, time.Now())
+	if err != nil {
+		return err
+	}
+
+	c.Grades = append(c.Grades, grade)
+
+	return nil
 }
 
 func (c *Character) AvailableSlots() []*Slot {
@@ -163,6 +171,16 @@ func (c *Character) FreeSlot(start time.Time) error {
 	return slot.Free()
 }
 
+func (c *Character) Skills() map[SkillType]int {
+	skills := make(map[SkillType]int)
+	for _, skill := range AllSkills {
+		skills[skill] = c.sumPoints(func(st SkillType) bool {
+			return st == skill
+		})
+	}
+	return skills
+}
+
 func (c *Character) slotByTime(start time.Time) (*Slot, bool) {
 	for _, slot := range c.Slots {
 		if slot.Start.Equal(start) {
@@ -173,21 +191,29 @@ func (c *Character) slotByTime(start time.Time) (*Slot, bool) {
 }
 
 func (c *Character) ratingBase() int {
-	r := 0
-	for _, s := range GeneralSkill {
-		r += c.Skills[s]
+	isGeneral := func(st SkillType) bool {
+		return slices.Contains(GeneralSkill, st)
 	}
-	return r
+	return c.sumPoints(isGeneral)
 }
 
-const lambda = 0.25
+const lambda = 1.0 / 72 // Не спрашивайте, почему.
 
 func (c *Character) ratingFactor() float64 {
-	k := 1.0
-	for _, s := range AdditionalSkill {
-		k += lambda * float64(c.Skills[s])
+	isAdditional := func(st SkillType) bool {
+		return slices.Contains(AdditionalSkill, st)
 	}
-	return k
+	return 1.0 + lambda*float64(c.sumPoints(isAdditional))
+}
+
+func (c *Character) sumPoints(predicate func(st SkillType) bool) int {
+	r := 0
+	for _, g := range c.Grades {
+		if predicate(g.SkillType) {
+			r += g.Points
+		}
+	}
+	return r
 }
 
 func slotIsAvailable(slot *Slot) bool {

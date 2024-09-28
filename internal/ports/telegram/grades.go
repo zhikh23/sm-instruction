@@ -3,7 +3,7 @@ package telegram
 import (
 	"context"
 	"fmt"
-	"strings"
+	"strconv"
 
 	"github.com/vitaliy-ukiru/fsm-telebot/v2"
 	"gopkg.in/telebot.v3"
@@ -12,7 +12,7 @@ import (
 	"github.com/zhikh23/sm-instruction/internal/domain/sm"
 )
 
-func (p *Port) sendProfile(c telebot.Context, s fsm.Context) error {
+func (p *Port) sendParticipantsGrades(c telebot.Context, s fsm.Context) error {
 	ctx := context.Background()
 
 	groupName, err := extractGroupName(ctx, s)
@@ -25,28 +25,23 @@ func (p *Port) sendProfile(c telebot.Context, s fsm.Context) error {
 		return err
 	}
 
-	msg := buildMessage("\n",
-		"<b>ПРОФИЛЬ</b>",
-		"",
-		fmt.Sprintf("Учебная группа: %s", char.GroupName),
-		"Навыки:",
-	)
-	for _, skill := range sm.AllSkills {
-		msg = buildMessage("\n", msg,
-			fmt.Sprintf("<i>%s</i> - %d", skill.String(), char.Skills[skill.String()]),
+	msg := "<b>УСПЕВАЕМОСТЬ</b>\n\n"
+	for _, grade := range char.Grades {
+		msg += buildMessage(" ",
+			grade.Time.Format(sm.TimeFormat),
+			"-",
+			fmt.Sprintf("%q", grade.ActivityName),
+			"-",
+			grade.SkillType,
+			"-",
+			"<i>"+strconv.Itoa(grade.Points),
+			"б</i>\n",
 		)
 	}
-	msg = buildMessage("\n", msg,
-		fmt.Sprintf("Рейтинг: <b>%0.1f</b>", char.Rating),
-	)
 
 	if err = c.Send(msg, telebot.ModeHTML); err != nil {
 		return err
 	}
 
 	return p.sendParticipantMenu(c, s)
-}
-
-func buildMessage(sep string, lines ...string) string {
-	return strings.Join(lines, sep)
 }
