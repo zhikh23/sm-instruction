@@ -66,7 +66,7 @@ func (p *Port) additionalHandleActivityName(c telebot.Context, s fsm.Context) er
 	msg := buildMessage("\n",
 		fmt.Sprintf("<b>%s</b>", activity.Name),
 		"",
-		fmt.Sprintf("%s", *activity.Description),
+		fmt.Sprintf("🔹 %s", *activity.Description),
 	)
 
 	if err = c.Send(msg, telebot.ModeHTML); err != nil {

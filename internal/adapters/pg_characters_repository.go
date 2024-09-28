@@ -323,7 +323,7 @@ func (r *pgCharactersRepository) update(
 	if err = r.requireExecResult(ex.ExecContext(ctx,
 		`UPDATE characters 
 		 SET    started_at = $2
-		 WHERE  group_name = $1`, character.GroupName, character.StartedAt,
+		 WHERE  group_name = $1`, character.GroupName, timeUTCOrNil(character.StartedAt),
 	)); err != nil {
 		return err
 	}

@@ -3,12 +3,12 @@ package telegram
 import (
 	"context"
 	"fmt"
-	"github.com/zhikh23/sm-instruction/internal/domain/sm"
 
 	"github.com/vitaliy-ukiru/fsm-telebot/v2"
 	"gopkg.in/telebot.v3"
 
 	"github.com/zhikh23/sm-instruction/internal/app/query"
+	"github.com/zhikh23/sm-instruction/internal/domain/sm"
 )
 
 func (p *Port) sendCharacterTimetable(c telebot.Context, s fsm.Context) error {
@@ -24,17 +24,21 @@ func (p *Port) sendCharacterTimetable(c telebot.Context, s fsm.Context) error {
 		return err
 	}
 
-	msg := "<b>РАСПИСАНИЕ</b>\n\n"
+	msg := buildMessage("\n",
+		"<b>РАСПИСАНИЕ</b>\n",
+		fmt.Sprintf("Для группы %s:", groupName),
+	)
 	for _, slot := range char.Slots {
-		var text string
 		if slot.Whom == nil {
-			text = "-"
-		} else {
-			text = *slot.Whom
+			continue
 		}
-		msg += fmt.Sprintf(
-			"<code>%s-%s</code> %s\n",
-			slot.Start.Format(sm.TimeFormat), slot.End.Format(sm.TimeFormat), text,
+		msg = buildMessage("\n",
+			msg,
+			"",
+			fmt.Sprintf(
+				"<code>%s-%s</code> | %s",
+				slot.Start.Format(sm.TimeFormat), slot.End.Format(sm.TimeFormat), *slot.Whom,
+			),
 		)
 	}
 

@@ -53,6 +53,7 @@ const (
 	participantMenuGradesButton     = "Успеваемость"
 	participantMenuRatingButton     = "Сессия"
 	participantMenuAdditionalButton = "Дополнительные задания"
+	participantMenuLearnMore        = "Материалы"
 
 	adminMenuAwardCharacterButton = "Начислить баллы"
 	adminMenuTimetableButton      = "Расписание"
@@ -74,6 +75,7 @@ func (p *Port) sendParticipantMenu(c telebot.Context, s fsm.Context) error {
 			participantMenuGradesButton,
 			participantMenuRatingButton,
 			participantMenuAdditionalButton,
+			participantMenuLearnMore,
 		}, 2),
 	)
 }

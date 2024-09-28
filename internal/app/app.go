@@ -23,6 +23,7 @@ type Queries struct {
 	Rating               query.RatingHandler
 	GetActivity          query.GetActivityHandler
 	AdminActivity        query.AdminActivityHandler
+	Activities           query.ActivitiesHandler
 	AvailableActivities  query.AvailableActivitiesHandler
 	AdditionalActivities query.AdditionalActivitiesHandler
 	AvailableSlots       query.AvailableSlotsHandler

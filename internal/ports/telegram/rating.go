@@ -39,7 +39,7 @@ func (p *Port) sendParticipantRating(c telebot.Context, s fsm.Context) error {
 		msg = buildMessage("\n",
 			msg,
 			"...",
-			fmt.Sprintf("%d. %s - %0.2f", current, groupName, chars[current].Rating),
+			fmt.Sprintf("%d. %s - %0.2f", current+1, groupName, chars[current].Rating),
 		)
 	}
 

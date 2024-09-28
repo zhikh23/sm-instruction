@@ -26,16 +26,20 @@ func (p *Port) sendParticipantsGrades(c telebot.Context, s fsm.Context) error {
 	}
 
 	msg := "<b>УСПЕВАЕМОСТЬ</b>\n\n"
+	if len(char.Grades) == 0 {
+		msg += "Здесь пока пусто. Проходи точки, получай оценки и поднимай свой рейтинг в Сессии!"
+	}
+
 	for _, grade := range char.Grades {
 		msg += buildMessage(" ",
 			grade.Time.Format(sm.TimeFormat),
-			"-",
+			"|",
 			fmt.Sprintf("%q", grade.ActivityName),
 			"-",
 			grade.SkillType,
 			"-",
 			"<i>"+strconv.Itoa(grade.Points),
-			"б</i>\n",
+			"б.</i>\n",
 		)
 	}
 

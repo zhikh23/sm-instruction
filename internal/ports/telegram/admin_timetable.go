@@ -26,18 +26,22 @@ func (p *Port) sendAdminTimetable(c telebot.Context, s fsm.Context) error {
 
 	msg := buildMessage("\n",
 		"<b>РАСПИСАНИЕ</b>\n",
-		fmt.Sprintf("Для точки %q:", activityName),
+		fmt.Sprintf("Для точки %s:", activityName),
 	)
 	for _, slot := range char.Slots {
 		var text string
 		if slot.Whom == nil {
-			text = "Свободно"
+			text = "-"
 		} else {
 			text = *slot.Whom
 		}
-		msg += fmt.Sprintf(
-			"<code>%s-%s</code> %q\n",
-			slot.Start.Format(sm.TimeFormat), slot.End.Format(sm.TimeFormat), text,
+		msg = buildMessage("\n",
+			msg,
+			"",
+			fmt.Sprintf(
+				"<code>%s-%s</code> | %s",
+				slot.Start.Format(sm.TimeFormat), slot.End.Format(sm.TimeFormat), text,
+			),
 		)
 	}
 

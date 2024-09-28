@@ -63,6 +63,7 @@ func newApplication(
 			Rating:               query.NewRatingHandler(chars, log, metricsClient),
 			GetActivity:          query.NewGetActivityHandler(activities, log, metricsClient),
 			AdminActivity:        query.NewAdminActivtyHandler(activities, log, metricsClient),
+			Activities:           query.NewActivitiesHandler(activities, log, metricsClient),
 			AvailableActivities:  query.NewAvailableActivitiesHandler(chars, activities, log, metricsClient),
 			AdditionalActivities: query.NewAdditionalActivitiesHandler(activities, log, metricsClient),
 			AvailableSlots:       query.NewAvailableSlotsHandler(chars, activities, log, metricsClient),

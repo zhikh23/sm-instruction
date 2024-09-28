@@ -29,18 +29,24 @@ func (p *Port) sendProfile(c telebot.Context, s fsm.Context) error {
 	msg := buildMessage("\n",
 		"<b>ПРОФИЛЬ</b>",
 		"",
-		fmt.Sprintf("Учебная группа: <code>%s</code>\n", char.GroupName),
-		"",
+		fmt.Sprintf("Учебная группа: <code>%s</code>", char.GroupName),
 	)
 	if time.Now().Before(*char.End) {
 		remains := char.End.Sub(*char.Start)
-		msg += buildMessage("\n",
+		msg = buildMessage("\n",
+			msg,
+			"",
 			fmt.Sprintf("Начало Инструкции: %s", char.Start.Format(sm.TimeFormat)),
 			fmt.Sprintf("Конец Инструкции: %s", char.End.Format(sm.TimeFormat)),
 			fmt.Sprintf(
-				"❕ Осталось до конца Инструкции <b>%d:%02d</b>\n",
-				int(remains.Hours()), int(remains.Minutes()),
+				"❕ Осталось до конца Инструкции: <b>%d:%02d</b>\n",
+				int(remains.Hours()), int(remains.Minutes())%60,
 			),
+		)
+	} else {
+		msg = buildMessage("\n",
+			msg,
+			fmt.Sprintf("Инструкция окончена в <b>%s</b>.", char.Start.Format(sm.TimeFormat)),
 		)
 	}
 

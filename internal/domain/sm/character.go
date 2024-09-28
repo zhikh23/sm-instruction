@@ -8,9 +8,11 @@ import (
 	"time"
 
 	"github.com/zhikh23/sm-instruction/internal/common/commonerrs"
+
+	"github.com/zhikh23/sm-instruction/pkg/funcs"
 )
 
-const InstructionDuration = 4 * time.Hour
+const InstructionDuration = 4 * 4 * time.Hour // TODO!
 
 var ErrSlotAlreadyExists = errors.New("slot already exists")
 
@@ -140,20 +142,14 @@ func (c *Character) AvailableSlots() []*Slot {
 	return filter(c.Slots, slotIsAvailable)
 }
 
-// var ErrAlreadyStarted = errors.New("character already started")
-
 func (c *Character) Start() error {
-	//	if c.StartedAt != nil {
-	//		return ErrAlreadyStarted
-	//	}
-
 	t := time.Now()
 	c.StartedAt = &t
 
 	// Обрезаем слоты до нужного промежутка времени.
-	//	c.Slots = funcs.Filter(c.Slots, func(slot *Slot) bool {
-	//		return slot.Start.Before(c.StartedAt.Add(InstructionDuration)) // TODO!
-	//	})
+	c.Slots = funcs.Filter(c.Slots, func(slot *Slot) bool {
+		return slot.Start.Before(c.StartedAt.Add(InstructionDuration))
+	})
 
 	return nil
 }
@@ -172,16 +168,11 @@ func (c *Character) EndTime() *time.Time {
 	return &v
 }
 
-var ErrCharacterNotStarted = errors.New("character not started")
 var ErrSlotNotFound = errors.New("slot not found")
 var ErrSlotIsTooLate = errors.New("slot is too late")
 
 func (c *Character) TakeSlot(start time.Time, activityName string) error {
-	if !c.IsStarted() {
-		return ErrCharacterNotStarted
-	}
-
-	if start.After(*c.EndTime()) {
+	if c.IsStarted() && start.After(*c.EndTime()) {
 		return ErrSlotIsTooLate
 	}
 
