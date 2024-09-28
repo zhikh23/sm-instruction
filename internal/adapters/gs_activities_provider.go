@@ -50,7 +50,7 @@ func NewGSActivitiesProvider(credentialsFile string, spreadsheetID string) sm.Ac
 	}
 }
 
-func (p *gsActivitiesProvider) Activities(ctx context.Context) ([]*sm.Activity, error) {
+func (p *gsActivitiesProvider) Activities(_ context.Context) ([]*sm.Activity, error) {
 	sheet, err := p.s.SheetByTitle("EXPORT ACTIVITIES")
 	if err != nil {
 		return nil, err

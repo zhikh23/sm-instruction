@@ -12,7 +12,6 @@ import (
 	"github.com/zhikh23/sm-instruction/internal/common/logs"
 	"github.com/zhikh23/sm-instruction/internal/common/metrics"
 	"github.com/zhikh23/sm-instruction/internal/domain/sm"
-	"github.com/zhikh23/sm-instruction/internal/service/mocks"
 )
 
 func NewApplication() (*app.Application, func() error) {
@@ -30,17 +29,6 @@ func NewApplication() (*app.Application, func() error) {
 		err = errors.Join(err, closeActivities())
 		return err
 	}
-}
-
-func NewMockedApplication() *app.Application {
-	log := logs.DefaultLogger()
-	metricsClient := metrics.NoOp{}
-
-	users := mocks.NewMockUsersRepository()
-	chars := mocks.NewMockCharactersRepository()
-	activities := mocks.NewMockActivitiesRepository()
-
-	return newApplication(log, metricsClient, users, chars, activities)
 }
 
 func newApplication(

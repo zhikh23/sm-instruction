@@ -93,23 +93,6 @@ func NewActivity(
 	}, nil
 }
 
-func MustNewActivity(
-	name string,
-	fullName string,
-	description *string,
-	location *string,
-	admins []User,
-	skills []SkillType,
-	maxPoints int,
-	slots []*Slot,
-) *Activity {
-	a, err := NewActivity(name, fullName, description, location, admins, skills, maxPoints, slots)
-	if err != nil {
-		panic(err)
-	}
-	return a
-}
-
 func UnmarshallActivityFromDB(
 	name string,
 	fullName string,

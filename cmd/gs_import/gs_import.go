@@ -34,13 +34,19 @@ func main() {
 	}
 
 	usersRepos, closeUsers := adapters.NewPGUsersRepository()
-	defer closeUsers()
+	defer func() {
+		_ = closeUsers()
+	}()
 
 	charsRepos, closeChars := adapters.NewPGCharactersRepository()
-	defer closeChars()
+	defer func() {
+		_ = closeChars()
+	}()
 
 	activitiesRepos, closeActivities := adapters.NewPGActivitiesRepository()
-	defer closeActivities()
+	defer func() {
+		_ = closeActivities()
+	}()
 
 	groups := make(map[string]bool)
 	for _, act := range activities {
