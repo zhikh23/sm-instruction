@@ -18,7 +18,7 @@ type pgCharactersRepository struct {
 }
 
 func NewPGCharactersRepository() (sm.CharactersRepository, func() error) {
-	uri := os.Getenv("DATABASE_URL")
+	uri := os.Getenv("DATABASE_URI")
 	if uri == "" {
 		panic("DATABASE_URL environment variable not set")
 	}

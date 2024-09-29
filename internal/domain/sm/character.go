@@ -217,7 +217,6 @@ func (c *Character) TakenSlots() int {
 			i++
 		}
 	}
-	fmt.Println(i)
 	return i
 }
 

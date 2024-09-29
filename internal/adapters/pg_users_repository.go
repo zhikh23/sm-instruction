@@ -4,11 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/zhikh23/pgutils"
 	"os"
 
 	"github.com/jmoiron/sqlx"
 
+	"github.com/zhikh23/pgutils"
 	"github.com/zhikh23/sm-instruction/internal/domain/sm"
 )
 
@@ -17,7 +17,7 @@ type pgUsersRepository struct {
 }
 
 func NewPGUsersRepository() (sm.UsersRepository, func() error) {
-	uri := os.Getenv("DATABASE_URL")
+	uri := os.Getenv("DATABASE_URI")
 	if uri == "" {
 		panic("DATABASE_URL environment variable not set")
 	}

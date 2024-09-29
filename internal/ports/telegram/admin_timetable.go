@@ -3,12 +3,12 @@ package telegram
 import (
 	"context"
 	"fmt"
-	"github.com/zhikh23/sm-instruction/internal/domain/sm"
 
 	"github.com/vitaliy-ukiru/fsm-telebot/v2"
 	"gopkg.in/telebot.v3"
 
 	"github.com/zhikh23/sm-instruction/internal/app/query"
+	"github.com/zhikh23/sm-instruction/internal/domain/sm"
 )
 
 func (p *Port) sendAdminTimetable(c telebot.Context, s fsm.Context) error {

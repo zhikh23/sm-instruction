@@ -96,12 +96,15 @@ func (p *Port) sendAdminMenu(c telebot.Context, s fsm.Context) error {
 		return err
 	}
 
+	buttons := make([]string, 0)
+	buttons = append(buttons, adminMenuAwardCharacterButton)
+	if act.Location != nil {
+		buttons = append(buttons, adminMenuTimetableButton)
+	}
+
 	return c.Send(
 		"Панель управления администратора.",
-		createMarkupWithButtonsFromStrings([]string{
-			adminMenuAwardCharacterButton,
-			adminMenuTimetableButton,
-		}, 2),
+		createMarkupWithButtonsFromStrings(buttons, 2),
 	)
 }
 

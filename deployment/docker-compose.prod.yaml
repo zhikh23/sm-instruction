@@ -1,0 +1,51 @@
+services:
+  bot-telegram:
+    container_name: sm-bot-telegram
+    build:
+      context: ../
+      args:
+        SERVICE: telegram
+    env_file:
+      - ../.env
+    depends_on:
+      bot-db:
+        condition: service_healthy
+    networks:
+      - sm-web-bot
+
+  bot-db:
+    image: postgres:15.3-alpine3.18
+    container_name: sm-bot-postgres
+    command: postgres
+    ports:
+      - "54320:5432"
+    env_file:
+      - ../.env
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB" ]
+      interval: 5s
+      retries: 5
+      start_period: 10s
+      timeout: 10s
+    networks:
+      sm-web-bot:
+        aliases:
+          - db
+
+  bot-migrate:
+    image: migrate/migrate
+    container_name: sm-bot-migrate
+    networks:
+      - sm-web-bot
+    volumes:
+      - ../migrations:/migrations
+    env_file:
+      - ../.env
+    command: [ "-path", "/migrations", "-database", "$DATABASE_URI", "up" ]
+    depends_on:
+      bot-db:
+        condition: service_healthy
+
+networks:
+  sm-web-bot:
+    driver: bridge

@@ -19,7 +19,7 @@ type pgActivitiesRepository struct {
 }
 
 func NewPGActivitiesRepository() (sm.ActivitiesRepository, func() error) {
-	uri := os.Getenv("DATABASE_URL")
+	uri := os.Getenv("DATABASE_URI")
 	if uri == "" {
 		panic("DATABASE_URL environment variable not set")
 	}
