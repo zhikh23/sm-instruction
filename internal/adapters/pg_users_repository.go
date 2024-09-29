@@ -19,7 +19,7 @@ type pgUsersRepository struct {
 func NewPGUsersRepository() (sm.UsersRepository, func() error) {
 	uri := os.Getenv("DATABASE_URI")
 	if uri == "" {
-		panic("DATABASE_URL environment variable not set")
+		panic("DATABASE_URI environment variable not set")
 	}
 	db := sqlx.MustConnect("postgres", uri)
 

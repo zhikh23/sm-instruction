@@ -17,7 +17,7 @@ type Activity struct {
 	Admins      []User
 	Skills      []SkillType
 	MaxPoints   int
-	slots       map[time.Time]*Slot
+	Slots       []*Slot
 }
 
 func NewActivity(
@@ -76,9 +76,12 @@ func NewActivity(
 		slots = make([]*Slot, 0)
 	}
 
-	mappedSlots, err := mapSlots(slots)
-	if err != nil {
-		return nil, err
+	times := make(map[time.Time]bool)
+	for _, slot := range slots {
+		if contains := times[slot.Start]; contains {
+			return nil, ErrSlotAlreadyExists
+		}
+		times[slot.Start] = true
 	}
 
 	return &Activity{
@@ -89,7 +92,7 @@ func NewActivity(
 		Admins:      admins,
 		Skills:      skills,
 		MaxPoints:   maxPoints,
-		slots:       mappedSlots,
+		Slots:       slots,
 	}, nil
 }
 
@@ -128,11 +131,6 @@ func UnmarshallActivityFromDB(
 		skills[i] = skill
 	}
 
-	mappedSlots, err := mapSlots(slots)
-	if err != nil {
-		return nil, err
-	}
-
 	return &Activity{
 		Name:        name,
 		FullName:    fullName,
@@ -141,16 +139,8 @@ func UnmarshallActivityFromDB(
 		Admins:      admins,
 		Skills:      skills,
 		MaxPoints:   maxPoints,
-		slots:       mappedSlots,
+		Slots:       slots,
 	}, nil
-}
-
-func (a *Activity) Slots() []*Slot {
-	slots := make([]*Slot, 0, len(a.slots))
-	for _, s := range a.slots {
-		slots = append(slots, s)
-	}
-	return slots
 }
 
 var ErrCannotIncSkill = errors.New("cannot increment skill")
@@ -169,7 +159,7 @@ func (a *Activity) Award(char *Character, skill SkillType, points int) error {
 }
 
 func (a *Activity) TakeSlot(start time.Time, groupName string) error {
-	slot, ok := a.slots[start]
+	slot, ok := a.slotByTime(start)
 	if !ok {
 		return ErrSlotNotFound
 	}
@@ -178,7 +168,7 @@ func (a *Activity) TakeSlot(start time.Time, groupName string) error {
 }
 
 func (a *Activity) FreeSlot(start time.Time) error {
-	slot, ok := a.slots[start]
+	slot, ok := a.slotByTime(start)
 	if !ok {
 		return ErrSlotNotFound
 	}
@@ -187,13 +177,13 @@ func (a *Activity) FreeSlot(start time.Time) error {
 }
 
 func (a *Activity) AvailableSlots() []*Slot {
-	return funcs.Filter(a.Slots(), func(slot *Slot) bool {
+	return funcs.Filter(a.Slots, func(slot *Slot) bool {
 		return slot.IsAvailable()
 	})
 }
 
 func (a *Activity) HasTaken(groupName string) bool {
-	for _, slot := range a.Slots() {
+	for _, slot := range a.Slots {
 		if !slot.IsAvailable() && *slot.Whom == groupName {
 			return true
 		}
@@ -201,13 +191,11 @@ func (a *Activity) HasTaken(groupName string) bool {
 	return false
 }
 
-func mapSlots(ss []*Slot) (map[time.Time]*Slot, error) {
-	slots := make(map[time.Time]*Slot)
-	for _, s := range ss {
-		if _, ok := slots[s.Start]; ok {
-			return nil, ErrSlotAlreadyExists
+func (a *Activity) slotByTime(start time.Time) (*Slot, bool) {
+	for _, slot := range a.Slots {
+		if slot.Start.Equal(start) {
+			return slot, true
 		}
-		slots[s.Start] = s
 	}
-	return slots, nil
+	return nil, false
 }

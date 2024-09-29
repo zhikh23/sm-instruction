@@ -56,12 +56,12 @@ func (r *pgActivitiesRepository) Save(
 			}
 		}
 
-		if len(activity.Slots()) > 0 {
+		if len(activity.Slots) > 0 {
 			if err = r.requireExecResult(tx.NamedExecContext(ctx,
 				`INSERT INTO
 					activity_slots (activity_name, start, end_, group_name) 
 			 	 VALUES (:activity_name, :start, :end_, :group_name)`,
-				marshallActivitySlotsToRows(activity.Name, activity.Slots()),
+				marshallActivitySlotsToRows(activity.Name, activity.Slots),
 			)); err != nil {
 				return err
 			}
@@ -485,7 +485,7 @@ func (r *pgActivitiesRepository) updateSlots(
 	activity *sm.Activity,
 ) error {
 	var err error
-	for _, slot := range activity.Slots() {
+	for _, slot := range activity.Slots {
 		if err = r.requireExecResult(ex.ExecContext(ctx,
 			`UPDATE activity_slots SET group_name = $3 WHERE activity_name = $1 AND start = $2`,
 			activity.Name, slot.Start.UTC(), slot.Whom,

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -50,7 +51,7 @@ func main() {
 
 	groups := make(map[string]bool)
 	for _, act := range activities {
-		for _, slot := range act.Slots() {
+		for _, slot := range act.Slots {
 			if !slot.IsAvailable() {
 				groups[*slot.Whom] = true
 			}
@@ -62,6 +63,7 @@ func main() {
 	users := make(map[string]sm.User)
 	for _, act := range activities {
 		for _, admin := range act.Admins {
+			fmt.Println(admin.Username)
 			users[admin.Username] = admin
 		}
 	}
@@ -100,7 +102,7 @@ func main() {
 	}
 
 	for _, act := range activities {
-		for _, slot := range act.Slots() {
+		for _, slot := range act.Slots {
 			if slot.IsAvailable() {
 				continue
 			}

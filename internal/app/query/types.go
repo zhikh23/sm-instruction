@@ -144,7 +144,7 @@ func convertActivityToApp(a *sm.Activity) Activity {
 		Admins:      convertUsersToApp(a.Admins),
 		Skills:      convertSkillTypesToApp(a.Skills),
 		MaxPoints:   a.MaxPoints,
-		Slots:       convertSlotsToApp(a.Slots()),
+		Slots:       convertSlotsToApp(a.Slots),
 	}
 }
 
