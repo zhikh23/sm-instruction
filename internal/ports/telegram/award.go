@@ -196,7 +196,7 @@ func (p *Port) awardSendSuccess(c telebot.Context, s fsm.Context, groupName stri
 	if err != nil {
 		return err
 	}
-	return p.sendParticipantMenu(c, s)
+	return p.sendAdminMenu(c, s)
 }
 
 func (p *Port) awardSendInvalidPoints(c telebot.Context, s fsm.Context) error {
