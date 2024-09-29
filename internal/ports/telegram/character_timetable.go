@@ -30,14 +30,19 @@ func (p *Port) sendCharacterTimetable(c telebot.Context, s fsm.Context) error {
 		"",
 	)
 	for _, slot := range char.Slots {
+		act, err := p.app.Queries.GetActivity.Handle(ctx, query.GetActivity{ActivityName: *slot.Whom})
+		if err != nil {
+			return err
+		}
+
 		if slot.Whom == nil {
 			continue
 		}
 		msg = buildMessage("\n",
 			msg,
 			fmt.Sprintf(
-				"<code>%s-%s</code> | %s",
-				slot.Start.Format(sm.TimeFormat), slot.End.Format(sm.TimeFormat), *slot.Whom,
+				"<code>%s-%s</code> | %s | %s",
+				slot.Start.Format(sm.TimeFormat), slot.End.Format(sm.TimeFormat), *slot.Whom, *act.Location,
 			),
 		)
 	}

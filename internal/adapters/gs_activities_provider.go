@@ -58,7 +58,7 @@ func (p *gsActivitiesProvider) Activities(_ context.Context) ([]*sm.Activity, er
 
 	column := sheet.Columns[1]
 	start := 11
-	total := 19
+	total := 18
 	times := make([]time.Time, total)
 	for i, cell := range column[start : start+total] {
 		t, err := time.Parse(sm.TimeFormat, cell.Value)

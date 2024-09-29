@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"time"
 
@@ -63,7 +62,6 @@ func main() {
 	users := make(map[string]sm.User)
 	for _, act := range activities {
 		for _, admin := range act.Admins {
-			fmt.Println(admin.Username)
 			users[admin.Username] = admin
 		}
 	}
