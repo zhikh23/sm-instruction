@@ -12,7 +12,9 @@ import (
 	"github.com/zhikh23/sm-instruction/pkg/funcs"
 )
 
-const InstructionDuration = 4 * 4 * time.Hour // TODO!
+const InstructionDuration = 4 * time.Hour
+const MaxTakenSlots = 4 + 1 + 2
+const MinDurationBefore = 5 * time.Minute
 
 var ErrSlotAlreadyExists = errors.New("slot already exists")
 
@@ -139,7 +141,11 @@ func (c *Character) GiveGrade(skillType SkillType, points int, activityName stri
 }
 
 func (c *Character) AvailableSlots() []*Slot {
-	return filter(c.Slots, slotIsAvailable)
+	slotIsAvailable := func(slot *Slot) bool {
+		return slot.IsAvailable()
+	}
+
+	return funcs.Filter(c.Slots, slotIsAvailable)
 }
 
 func (c *Character) Start() error {
@@ -168,12 +174,22 @@ func (c *Character) EndTime() *time.Time {
 	return &v
 }
 
+var ErrSlotsMaxNumberExceeded = errors.New("slot max number exceeded")
 var ErrSlotNotFound = errors.New("slot not found")
 var ErrSlotIsTooLate = errors.New("slot is too late")
+var ErrSlotIsTooClose = errors.New("slot is too close")
 
 func (c *Character) TakeSlot(start time.Time, activityName string) error {
+	if c.TakenSlots() >= MaxTakenSlots {
+		return ErrSlotsMaxNumberExceeded
+	}
+
 	if c.IsStarted() && start.After(*c.EndTime()) {
 		return ErrSlotIsTooLate
+	}
+
+	if start.Sub(time.Now()) < MinDurationBefore {
+		return ErrSlotIsTooClose
 	}
 
 	slot, ok := c.slotByTime(start)
@@ -184,15 +200,6 @@ func (c *Character) TakeSlot(start time.Time, activityName string) error {
 	return slot.Take(activityName)
 }
 
-func (c *Character) FreeSlot(start time.Time) error {
-	slot, ok := c.slotByTime(start)
-	if !ok {
-		return ErrSlotNotFound
-	}
-
-	return slot.Free()
-}
-
 func (c *Character) Skills() map[SkillType]int {
 	skills := make(map[SkillType]int)
 	for _, skill := range AllSkills {
@@ -201,6 +208,25 @@ func (c *Character) Skills() map[SkillType]int {
 		})
 	}
 	return skills
+}
+
+func (c *Character) TakenSlots() int {
+	i := 0
+	for _, slot := range c.Slots {
+		if !slot.IsAvailable() {
+			i++
+		}
+	}
+	fmt.Println(i)
+	return i
+}
+
+func (c *Character) CanTakeSlot() error {
+	if c.TakenSlots() >= MaxTakenSlots {
+		return ErrSlotsMaxNumberExceeded
+	}
+
+	return nil
 }
 
 func (c *Character) slotByTime(start time.Time) (*Slot, bool) {
@@ -236,18 +262,4 @@ func (c *Character) sumPoints(predicate func(st SkillType) bool) int {
 		}
 	}
 	return r
-}
-
-func slotIsAvailable(slot *Slot) bool {
-	return slot.IsAvailable()
-}
-
-func filter[T any](collection []T, predicate func(T) bool) []T {
-	res := make([]T, 0, len(collection))
-	for _, x := range collection {
-		if predicate(x) {
-			res = append(res, x)
-		}
-	}
-	return res
 }

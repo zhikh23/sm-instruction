@@ -3,9 +3,11 @@ package query
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/zhikh23/sm-instruction/internal/common/decorator"
 	"github.com/zhikh23/sm-instruction/internal/domain/sm"
+	"github.com/zhikh23/sm-instruction/pkg/funcs"
 )
 
 type AvailableSlots struct {
@@ -50,9 +52,9 @@ func (h *availableSlotsHandler) Handle(ctx context.Context, query AvailableSlots
 	charSlots := char.AvailableSlots()
 
 	availableSlots := sm.SlotsIntersection(activitySlots, charSlots)
-	//	availableSlots = funcs.Filter(availableSlots, func(slot *sm.Slot) bool {
-	//		return slot.Start.Before(char.EndTime())
-	//	})
+	availableSlots = funcs.Filter(availableSlots, func(slot *sm.Slot) bool {
+		return slot.Start.Before(*char.EndTime()) && slot.Start.After(time.Now().Add(-sm.MinDurationBefore))
+	})
 
 	return convertSlotsToApp(availableSlots), nil
 }

@@ -44,6 +44,10 @@ func (h *availableActivitiesHandler) Handle(
 		return nil, err
 	}
 
+	if err = char.CanTakeSlot(); err != nil {
+		return nil, err
+	}
+
 	activities, err := h.activities.AvailableActivities(ctx)
 	if err != nil {
 		return nil, err

@@ -25,10 +25,18 @@ func (p *Port) takeSlotSendChooseActivity(c telebot.Context, s fsm.Context) erro
 	if err != nil {
 		return err
 	}
+
 	activities, err := p.app.Queries.AvailableActivities.Handle(ctx, query.AvailableActivities{
 		GroupName: groupName,
 	})
-	if err != nil {
+	if errors.Is(err, sm.ErrSlotsMaxNumberExceeded) {
+		if err = c.Send(
+			fmt.Sprintf("🚫 К сожалению, ты уже записался на максимальное количество точек (%d).", sm.MaxTakenSlots),
+		); err != nil {
+			return err
+		}
+		return p.sendParticipantMenu(c, s)
+	} else if err != nil {
 		return err
 	}
 
